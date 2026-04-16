@@ -18,7 +18,7 @@ function StatusSelect({ value, onChange }) {
     <select
       value={value || 'pending'}
       onChange={e => onChange(e.target.value)}
-      className="border border-gray-200 rounded px-1.5 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400"
+      className="border border-gray-200 rounded px-1.5 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-arista-400"
     >
       {statuses.map(s => <option key={s} value={s}>{s}</option>)}
     </select>
@@ -84,7 +84,7 @@ function RunRow({ item }) {
 
       <div className="col-span-1 flex items-center gap-1 justify-end">
         {dirty && canEdit && (
-          <button onClick={save} className="text-xs text-blue-600 font-medium hover:text-blue-800">Save</button>
+          <button onClick={save} className="text-xs text-arista-500 font-medium hover:text-arista-700">Save</button>
         )}
         {canEdit && (
           <button onClick={() => deleteRunItem(item.id)}><Trash2 size={13} className="text-gray-300 hover:text-red-500" /></button>
@@ -132,7 +132,7 @@ export default function RunItemList() {
           {canEdit && (
             <button
               onClick={() => setShowAdd(true)}
-              className="flex items-center gap-1 text-xs text-blue-600 border border-blue-200 rounded px-2.5 py-1.5 hover:bg-blue-50"
+              className="flex items-center gap-1 text-xs text-arista-500 border border-arista-200 rounded px-2.5 py-1.5 hover:bg-arista-50"
             >
               <Plus size={13} /> Add TCs
             </button>
@@ -158,7 +158,7 @@ export default function RunItemList() {
           <div className="flex flex-col items-center justify-center h-40 text-gray-400 gap-2">
             <p className="text-sm">No test cases in this run yet.</p>
             {canEdit && (
-              <button onClick={() => setShowAdd(true)} className="text-xs text-blue-600 underline">Add test cases</button>
+              <button onClick={() => setShowAdd(true)} className="text-xs text-arista-500 underline">Add test cases</button>
             )}
           </div>
         )}

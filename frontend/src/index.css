@@ -2,6 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --arista-navy: #0e2e5b;
+  --arista-blue: #1a56b0;
+  --arista-sky: #3d8bfd;
+  --arista-light: #e8f0fe;
+  --arista-accent: #00b4d8;
+  --arista-green: #2ecc71;
+}
+
 body {
   margin: 0;
   font-family: system-ui, -apple-system, sans-serif;

@@ -1,6 +1,9 @@
-import { useState, useRef, useEffect } from 'react';
-import { SlidersHorizontal, FileText, FolderOpen, GripVertical } from 'lucide-react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { SlidersHorizontal, FileText, FolderOpen, GripVertical, ArrowLeft, ArrowRight, Pencil, Check, X } from 'lucide-react';
 import { useDraggable } from '@dnd-kit/core';
+import { DndContext as SortDndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import useTCStore from '../../stores/useTCStore';
 import useSearchStore from '../../stores/useSearchStore';
 import useFolderStore from '../../stores/useFolderStore';
@@ -19,6 +22,20 @@ const PRIORITY_BADGE = {
   P3: 'bg-green-100 text-green-700',
 };
 
+const MIN_COL_WIDTH = 60;
+const MAX_COL_WIDTH = 800;
+const DEFAULT_COL_WIDTH = 150;
+const COL_PADDING = 40; // px for cell padding (px-4 = 16px each side + buffer)
+
+// Measure text width using a shared off-screen canvas
+let _measureCanvas = null;
+function measureTextWidth(text, font) {
+  if (!_measureCanvas) _measureCanvas = document.createElement('canvas');
+  const ctx = _measureCanvas.getContext('2d');
+  ctx.font = font;
+  return ctx.measureText(text).width;
+}
+
 function loadColumns(section) {
   try {
     const raw = localStorage.getItem(`atm_columns_${section}`);
@@ -32,23 +49,104 @@ function saveColumns(section, cols) {
   localStorage.setItem(`atm_columns_${section}`, JSON.stringify(cols));
 }
 
-function DraggableRow({ tc, columns, onSelect }) {
+function loadColWidths(section) {
+  try {
+    const raw = localStorage.getItem(`atm_col_widths_${section}`);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveColWidths(section, widths) {
+  localStorage.setItem(`atm_col_widths_${section}`, JSON.stringify(widths));
+}
+
+// Draggable resize handle on the right edge of a column header
+function ColResizeHandle({ colKey, onResize }) {
+  const handleMouseDown = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    let lastX = e.clientX;
+
+    const onMouseMove = (e) => {
+      const delta = e.clientX - lastX;
+      lastX = e.clientX;
+      if (delta !== 0) onResize(colKey, delta);
+    };
+    const onMouseUp = () => {
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  }, [colKey, onResize]);
+
+  return (
+    <div
+      onMouseDown={handleMouseDown}
+      className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize group z-10"
+      title="Drag to resize"
+    >
+      <div className="absolute right-0 top-0 bottom-0 w-0.5 bg-transparent group-hover:bg-arista-400 transition-colors" />
+    </div>
+  );
+}
+
+// Sortable item in the column picker
+function SortablePickerItem({ field, isVisible, onToggle }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: field.key });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 text-sm text-gray-700"
+    >
+      <span {...listeners} {...attributes} className="cursor-grab text-gray-300 hover:text-gray-500">
+        <GripVertical size={12} />
+      </span>
+      <label className="flex items-center gap-2 flex-1 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={isVisible}
+          onChange={onToggle}
+          className="accent-arista-500"
+        />
+        {field.label}
+      </label>
+    </div>
+  );
+}
+
+function DraggableRow({ tc, columns, colWidths, onSelect, editingColumns }) {
   const canEdit = useAppStore(s => s.isEditor());
   const title = tc.data.title || tc.data.description || `TC #${tc.id}`;
 
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `tc-table-drag-${tc.id}`,
     data: { type: 'tc', id: tc.id, title },
-    disabled: !canEdit,
+    disabled: !canEdit || editingColumns,
   });
 
   return (
     <tr
       ref={setNodeRef}
-      onClick={() => onSelect(tc)}
-      className={`cursor-pointer hover:bg-blue-50 transition-colors ${isDragging ? 'opacity-40' : ''}`}
+      onClick={() => !editingColumns && onSelect(tc)}
+      className={`cursor-pointer hover:bg-arista-50 transition-colors ${isDragging ? 'opacity-40' : ''}`}
     >
-      {canEdit && (
+      {canEdit && !editingColumns && (
         <td className="pl-3 pr-0 py-2.5 w-6">
           <span {...listeners} {...attributes} className="cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500" onClick={e => e.stopPropagation()}>
             <GripVertical size={12} />
@@ -57,10 +155,12 @@ function DraggableRow({ tc, columns, onSelect }) {
       )}
       {columns.map(col => {
         const val = tc.data[col.key];
+        const w = colWidths[col.key];
+        const style = w ? { width: w, minWidth: w, maxWidth: w } : {};
 
         if (col.key === 'priority' && val) {
           return (
-            <td key={col.key} className="px-4 py-2.5 whitespace-nowrap">
+            <td key={col.key} className="px-4 py-2.5 whitespace-nowrap" style={style}>
               <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${PRIORITY_BADGE[val] || 'bg-gray-100 text-gray-600'}`}>
                 {val}
               </span>
@@ -70,14 +170,14 @@ function DraggableRow({ tc, columns, onSelect }) {
 
         if (typeof val === 'boolean') {
           return (
-            <td key={col.key} className="px-4 py-2.5 text-gray-600">
+            <td key={col.key} className="px-4 py-2.5 text-gray-600" style={style}>
               {val ? 'Yes' : 'No'}
             </td>
           );
         }
 
         return (
-          <td key={col.key} className="px-4 py-2.5 text-gray-700 max-w-xs">
+          <td key={col.key} className="px-4 py-2.5 text-gray-700" style={style}>
             <div className="truncate">
               {val ?? <span className="text-gray-300">&mdash;</span>}
             </div>
@@ -99,12 +199,36 @@ export default function TCTable({ section }) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const pickerRef = useRef(null);
 
-  // Reload stored columns when section changes
+  // Column widths — { key: pixelWidth }
+  const [colWidths, setColWidths] = useState(() => loadColWidths(section));
+  const colWidthsRef = useRef(colWidths);
+  useEffect(() => { colWidthsRef.current = colWidths; }, [colWidths]);
+
+  // Edit columns mode
+  const [editingColumns, setEditingColumns] = useState(false);
+  const [draftKeys, setDraftKeys] = useState(null);
+  const [draftWidths, setDraftWidths] = useState(null);
+
+  // Full ordered list of all schema keys
+  const [allKeysOrdered, setAllKeysOrdered] = useState(() => {
+    const stored = loadColumns(section);
+    const remaining = schema.map(f => f.key).filter(k => !stored.includes(k));
+    return [...stored, ...remaining];
+  });
+
+  const sortSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 3 } }));
+
   useEffect(() => {
-    setVisibleKeys(loadColumns(section));
+    const stored = loadColumns(section);
+    setVisibleKeys(stored);
+    const remaining = schema.map(f => f.key).filter(k => !stored.includes(k));
+    setAllKeysOrdered([...stored, ...remaining]);
+    setColWidths(loadColWidths(section));
+    setEditingColumns(false);
+    setDraftKeys(null);
+    setDraftWidths(null);
   }, [section]);
 
-  // Close picker on outside click
   useEffect(() => {
     function handleClickOutside(e) {
       if (pickerRef.current && !pickerRef.current.contains(e.target)) {
@@ -117,8 +241,9 @@ export default function TCTable({ section }) {
 
   const items = mode !== 'idle' ? results : list;
 
-  // Ordered by schema, filtered to selected keys
-  const columns = schema.filter(f => visibleKeys.includes(f.key));
+  const activeKeys = editingColumns && draftKeys ? draftKeys : visibleKeys;
+  const activeWidths = editingColumns && draftWidths ? draftWidths : colWidths;
+  const columns = activeKeys.map(k => schema.find(f => f.key === k)).filter(Boolean);
 
   function toggleKey(key) {
     const next = visibleKeys.includes(key)
@@ -128,7 +253,118 @@ export default function TCTable({ section }) {
     saveColumns(section, next);
   }
 
-  // No folder selected and not in search — prompt user
+  function handleSortEnd(event) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = allKeysOrdered.indexOf(active.id);
+    const newIndex = allKeysOrdered.indexOf(over.id);
+    const newOrder = arrayMove(allKeysOrdered, oldIndex, newIndex);
+    setAllKeysOrdered(newOrder);
+
+    const newVisible = newOrder.filter(k => visibleKeys.includes(k));
+    setVisibleKeys(newVisible);
+    saveColumns(section, newVisible);
+  }
+
+  // --- Normal mode: live column resize ---
+  const saveTimeout = useRef(null);
+  const handleLiveResize = useCallback((key, delta) => {
+    setColWidths(prev => {
+      const current = prev[key] || DEFAULT_COL_WIDTH;
+      const next = { ...prev, [key]: Math.max(MIN_COL_WIDTH, current + delta) };
+      // Debounce localStorage write — save only after drag settles
+      clearTimeout(saveTimeout.current);
+      saveTimeout.current = setTimeout(() => saveColWidths(section, next), 200);
+      return next;
+    });
+  }, [section]);
+
+  // --- Edit mode handlers ---
+  function startEditColumns() {
+    setDraftKeys([...visibleKeys]);
+    setDraftWidths({ ...colWidths });
+    setEditingColumns(true);
+    setPickerOpen(false);
+  }
+
+  function moveColumnLeft(index) {
+    if (index <= 0) return;
+    setDraftKeys(prev => arrayMove(prev, index, index - 1));
+  }
+
+  function moveColumnRight(index) {
+    setDraftKeys(prev => {
+      if (index >= prev.length - 1) return prev;
+      return arrayMove(prev, index, index + 1);
+    });
+  }
+
+  const handleDraftResize = useCallback((key, delta) => {
+    setDraftWidths(prev => {
+      const current = (prev || {})[key] || DEFAULT_COL_WIDTH;
+      return { ...prev, [key]: Math.max(MIN_COL_WIDTH, current + delta) };
+    });
+  }, []);
+
+  function saveEdits() {
+    if (draftKeys) {
+      setVisibleKeys(draftKeys);
+      saveColumns(section, draftKeys);
+      const remaining = schema.map(f => f.key).filter(k => !draftKeys.includes(k));
+      setAllKeysOrdered([...draftKeys, ...remaining]);
+    }
+    if (draftWidths) {
+      setColWidths(draftWidths);
+      saveColWidths(section, draftWidths);
+    }
+    setEditingColumns(false);
+    setDraftKeys(null);
+    setDraftWidths(null);
+  }
+
+  function cancelEdits() {
+    setEditingColumns(false);
+    setDraftKeys(null);
+    setDraftWidths(null);
+  }
+
+  // Auto-fit column width to longest content on double-click
+  function autoFitColumn(colKey) {
+    const field = schema.find(f => f.key === colKey);
+    if (!field) return;
+
+    const font = '14px ui-sans-serif, system-ui, sans-serif'; // matches text-sm
+    const headerFont = 'bold 12px ui-sans-serif, system-ui, sans-serif'; // matches text-xs font-semibold
+
+    // Measure header label
+    let maxWidth = measureTextWidth(field.label.toUpperCase(), headerFont);
+
+    // Measure all visible row values
+    for (const tc of items) {
+      let val = tc.data[colKey];
+      if (val === undefined || val === null) continue;
+      if (typeof val === 'boolean') val = val ? 'Yes' : 'No';
+      const text = String(val);
+      // Only measure first line for multi-line values
+      const firstLine = text.split('\n')[0];
+      const w = measureTextWidth(firstLine, font);
+      if (w > maxWidth) maxWidth = w;
+    }
+
+    const fitWidth = Math.min(MAX_COL_WIDTH, Math.max(MIN_COL_WIDTH, Math.ceil(maxWidth + COL_PADDING)));
+
+    if (editingColumns) {
+      setDraftWidths(prev => ({ ...prev, [colKey]: fitWidth }));
+    } else {
+      setColWidths(prev => {
+        const next = { ...prev, [colKey]: fitWidth };
+        saveColWidths(section, next);
+        return next;
+      });
+    }
+  }
+
   if (mode === 'idle' && selectedFolderId === null) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-2">
@@ -147,63 +383,126 @@ export default function TCTable({ section }) {
     );
   }
 
+  const resizeHandler = editingColumns ? handleDraftResize : handleLiveResize;
+
   return (
     <div className="flex flex-col h-full">
       {/* Toolbar */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100 bg-gray-50 shrink-0">
+      <div className="flex items-center justify-between px-4 py-2 shrink-0" style={{ borderBottom: '1px solid #d0def4', background: '#f0f5fc' }}>
         <span className="text-xs text-gray-500 font-medium">
           {(mode !== 'idle' ? searchTotal : total) || items.length} test case{((mode !== 'idle' ? searchTotal : total) || items.length) !== 1 ? 's' : ''}
         </span>
-        <div className="relative" ref={pickerRef}>
-          <button
-            onClick={() => setPickerOpen(v => !v)}
-            className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 border border-gray-200 bg-white rounded px-2 py-1 hover:bg-gray-100"
-          >
-            <SlidersHorizontal size={12} /> Columns
-          </button>
-          {pickerOpen && (
-            <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-20 py-1 min-w-[180px]">
-              <p className="px-3 pt-1 pb-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wide border-b border-gray-100">
-                Visible columns
-              </p>
-              {schema.map(field => (
-                <label
-                  key={field.key}
-                  className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer text-sm text-gray-700"
-                >
-                  <input
-                    type="checkbox"
-                    checked={visibleKeys.includes(field.key)}
-                    onChange={() => toggleKey(field.key)}
-                    className="accent-blue-500"
-                  />
-                  {field.label}
-                </label>
-              ))}
+        <div className="flex items-center gap-2">
+          {editingColumns ? (
+            <div className="flex items-center gap-1">
+              <span className="text-xs text-arista-500 mr-1">Drag column edges to resize</span>
+              <button
+                onClick={saveEdits}
+                className="flex items-center gap-1 text-xs text-green-600 hover:text-green-800 border border-green-300 bg-green-50 rounded px-2 py-1 hover:bg-green-100"
+              >
+                <Check size={12} /> Save
+              </button>
+              <button
+                onClick={cancelEdits}
+                className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 border border-gray-200 bg-white rounded px-2 py-1 hover:bg-gray-100"
+              >
+                <X size={12} /> Cancel
+              </button>
             </div>
+          ) : (
+            <>
+              <button
+                onClick={startEditColumns}
+                className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 border border-gray-200 bg-white rounded px-2 py-1 hover:bg-gray-100"
+                title="Rearrange and resize columns"
+              >
+                <Pencil size={12} /> Edit Columns
+              </button>
+              <div className="relative" ref={pickerRef}>
+                <button
+                  onClick={() => setPickerOpen(v => !v)}
+                  className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 border border-gray-200 bg-white rounded px-2 py-1 hover:bg-gray-100"
+                >
+                  <SlidersHorizontal size={12} /> Columns
+                </button>
+                {pickerOpen && (
+                  <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-20 py-1 min-w-[220px] max-h-[400px] overflow-y-auto">
+                    <p className="px-3 pt-1 pb-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wide border-b border-gray-100">
+                      Drag to reorder
+                    </p>
+                    <SortDndContext sensors={sortSensors} collisionDetection={closestCenter} onDragEnd={handleSortEnd}>
+                      <SortableContext items={allKeysOrdered} strategy={verticalListSortingStrategy}>
+                        {allKeysOrdered.map(key => {
+                          const field = schema.find(f => f.key === key);
+                          if (!field) return null;
+                          return (
+                            <SortablePickerItem
+                              key={key}
+                              field={field}
+                              isVisible={visibleKeys.includes(key)}
+                              onToggle={() => toggleKey(key)}
+                            />
+                          );
+                        })}
+                      </SortableContext>
+                    </SortDndContext>
+                  </div>
+                )}
+              </div>
+            </>
           )}
         </div>
       </div>
 
       {/* Table */}
       <div className="flex-1 overflow-auto">
-        <table className="w-full text-sm border-collapse">
+        <table className="text-sm border-collapse" style={{ tableLayout: 'fixed', minWidth: '100%' }}>
           <thead className="sticky top-0 bg-white z-10 shadow-[0_1px_0_0_#e5e7eb]">
             <tr>
-              {canEdit && <th className="w-6" />}
-              {columns.map(col => (
-                <th
-                  key={col.key}
-                  className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap"
-                >
-                  {col.label}
-                </th>
-              ))}
+              {canEdit && !editingColumns && <th className="w-6" />}
+              {columns.map((col, idx) => {
+                const w = activeWidths[col.key];
+                const thStyle = w ? { width: w, minWidth: MIN_COL_WIDTH } : { minWidth: MIN_COL_WIDTH };
+                return (
+                  <th
+                    key={col.key}
+                    className={`text-left px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap relative ${editingColumns ? 'bg-arista-50' : ''}`}
+                    style={thStyle}
+                    onDoubleClick={() => autoFitColumn(col.key)}
+                    title="Double-click to auto-fit width"
+                  >
+                    {editingColumns ? (
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => moveColumnLeft(idx)}
+                          disabled={idx === 0}
+                          className="p-0.5 rounded hover:bg-arista-200 disabled:opacity-20 disabled:cursor-not-allowed"
+                          title="Move left"
+                        >
+                          <ArrowLeft size={12} />
+                        </button>
+                        <span className="flex-1 text-center truncate">{col.label}</span>
+                        <button
+                          onClick={() => moveColumnRight(idx)}
+                          disabled={idx === columns.length - 1}
+                          className="p-0.5 rounded hover:bg-arista-200 disabled:opacity-20 disabled:cursor-not-allowed"
+                          title="Move right"
+                        >
+                          <ArrowRight size={12} />
+                        </button>
+                      </div>
+                    ) : (
+                      col.label
+                    )}
+                    <ColResizeHandle colKey={col.key} onResize={resizeHandler} />
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {items.map(tc => (
-              <DraggableRow key={tc.id} tc={tc} columns={columns} onSelect={selectTC} />
+              <DraggableRow key={tc.id} tc={tc} columns={columns} colWidths={activeWidths} onSelect={selectTC} editingColumns={editingColumns} />
             ))}
           </tbody>
         </table>

@@ -23,20 +23,27 @@ export default function UserPrompt() {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div
+      style={{ background: 'linear-gradient(135deg, #0e2e5b 0%, #1a56b0 50%, #3d8bfd 100%)' }}
+      className="fixed inset-0 flex items-center justify-center z-50"
+    >
       <form
         onSubmit={handleSubmit}
-        className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-sm flex flex-col gap-4"
+        className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-sm flex flex-col gap-5"
+        style={{ borderTop: '4px solid #3d8bfd' }}
       >
-        <h2 className="text-xl font-semibold text-gray-800">Welcome to ATM</h2>
-        <p className="text-sm text-gray-500">Sign in to continue.</p>
+        <div>
+          <h2 style={{ color: '#0e2e5b' }} className="text-2xl font-extrabold tracking-tight">ATM</h2>
+          <p className="text-sm text-gray-500 mt-1">Arista Testcase Management</p>
+        </div>
 
         {error && (
           <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>
         )}
 
         <input
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:border-transparent"
+          style={{ '--tw-ring-color': '#3d8bfd' }}
           placeholder="Username"
           value={username}
           onChange={e => setUsername(e.target.value)}
@@ -44,7 +51,8 @@ export default function UserPrompt() {
         />
         <input
           type="password"
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:border-transparent"
+          style={{ '--tw-ring-color': '#3d8bfd' }}
           placeholder="Password"
           value={password}
           onChange={e => setPassword(e.target.value)}
@@ -52,7 +60,8 @@ export default function UserPrompt() {
         <button
           type="submit"
           disabled={!username.trim() || !password || loading}
-          className="bg-blue-600 text-white rounded-lg py-2 text-sm font-medium hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
+          style={{ background: loading ? '#9ca3af' : '#1a56b0' }}
+          className="text-white rounded-lg py-2.5 text-sm font-bold hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-md"
         >
           {loading ? 'Signing in...' : 'Sign In'}
         </button>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Plus, Upload } from 'lucide-react';
 import { DndContext, PointerSensor, useSensor, useSensors, DragOverlay } from '@dnd-kit/core';
 import FolderTree from '../folder/FolderTree';
@@ -11,6 +11,60 @@ import useSearchStore from '../../stores/useSearchStore';
 import useTCStore from '../../stores/useTCStore';
 import useFolderStore from '../../stores/useFolderStore';
 
+const STORAGE_KEY = 'atm_pane_widths';
+const DEFAULT_SIDEBAR = 224;
+const DEFAULT_LIST = 288;
+const MIN_SIDEBAR = 160;
+const MAX_SIDEBAR = 400;
+const MIN_LIST = 200;
+const MAX_LIST = 500;
+
+function loadWidths() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return { sidebar: DEFAULT_SIDEBAR, list: DEFAULT_LIST };
+}
+
+function saveWidths(w) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(w));
+}
+
+function ResizeHandle({ onResize }) {
+  const handleMouseDown = useCallback((e) => {
+    e.preventDefault();
+    let lastX = e.clientX;
+
+    const handleMouseMove = (e) => {
+      const delta = e.clientX - lastX;
+      lastX = e.clientX;
+      if (delta !== 0) onResize(delta);
+    };
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }, [onResize]);
+
+  return (
+    <div
+      onMouseDown={handleMouseDown}
+      className="w-1 hover:w-1.5 cursor-col-resize shrink-0 transition-colors"
+      style={{ background: '#d0def4' }}
+      onMouseEnter={e => e.currentTarget.style.background = '#3d8bfd'}
+      onMouseLeave={e => e.currentTarget.style.background = '#d0def4'}
+    />
+  );
+}
+
 export default function TCSection({ section }) {
   const canEdit = useAppStore(s => s.isEditor());
   const { mode } = useSearchStore();
@@ -20,12 +74,33 @@ export default function TCSection({ section }) {
   const [showImport, setShowImport] = useState(false);
   const [activeDrag, setActiveDrag] = useState(null);
 
-  // Require 8px of movement before starting drag (prevents accidental drags on click)
+  const [paneWidths, setPaneWidths] = useState(loadWidths);
+  const saveTimer = useRef(null);
+
+  const handleSidebarResize = useCallback((delta) => {
+    setPaneWidths(prev => {
+      const newWidth = Math.min(MAX_SIDEBAR, Math.max(MIN_SIDEBAR, prev.sidebar + delta));
+      const updated = { ...prev, sidebar: newWidth };
+      clearTimeout(saveTimer.current);
+      saveTimer.current = setTimeout(() => saveWidths(updated), 200);
+      return updated;
+    });
+  }, []);
+
+  const handleListResize = useCallback((delta) => {
+    setPaneWidths(prev => {
+      const newWidth = Math.min(MAX_LIST, Math.max(MIN_LIST, prev.list + delta));
+      const updated = { ...prev, list: newWidth };
+      clearTimeout(saveTimer.current);
+      saveTimer.current = setTimeout(() => saveWidths(updated), 200);
+      return updated;
+    });
+  }, []);
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
 
-  // Clear stale list whenever the section tab changes
   useEffect(() => { clearList(); }, [section]);
 
   const showList = mode !== 'idle' || selectedFolderId !== null || list.length > 0;
@@ -47,23 +122,20 @@ export default function TCSection({ section }) {
     const dragData = active.data.current;
     const dropData = over.data.current;
 
-    // Determine target folder ID from the drop zone
     let targetFolderId = null;
     if (dropData?.type === 'folder') {
       targetFolderId = dropData.id;
     } else if (dropData?.type === 'folder-root') {
-      targetFolderId = null; // move to root
+      targetFolderId = null;
     } else {
-      return; // dropped on something that isn't a folder
+      return;
     }
 
     try {
       if (dragData.type === 'tc') {
-        // Moving a test case to a folder
         await moveTC(dragData.id, targetFolderId);
       } else if (dragData.type === 'folder') {
-        // Moving a folder into another folder (or root)
-        if (dragData.id === targetFolderId) return; // can't drop on self
+        if (dragData.id === targetFolderId) return;
         await moveFolder(dragData.id, targetFolderId, section);
       }
     } catch (err) {
@@ -76,15 +148,16 @@ export default function TCSection({ section }) {
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
-        <aside className="w-56 border-r border-gray-200 flex flex-col bg-gray-50 shrink-0">
+        <aside className="flex flex-col shrink-0 overflow-hidden" style={{ width: paneWidths.sidebar, background: '#f0f5fc' }}>
           <FolderTree section={section} />
         </aside>
 
+        <ResizeHandle onResize={handleSidebarResize} />
+
         {/* List panel */}
-        <div className="w-72 border-r border-gray-200 flex flex-col shrink-0">
-          {/* List toolbar */}
-          <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100 bg-white">
-            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+        <div className="flex flex-col shrink-0 overflow-hidden" style={{ width: paneWidths.list }}>
+          <div className="flex items-center justify-between px-3 py-2 border-b bg-white" style={{ borderColor: '#d0def4' }}>
+            <span className="text-xs font-bold uppercase tracking-wide" style={{ color: '#0e2e5b' }}>
               {mode !== 'idle' ? 'Search Results' : 'Test Cases'}
             </span>
             {canEdit && (
@@ -107,8 +180,10 @@ export default function TCSection({ section }) {
           </div>
         </div>
 
+        <ResizeHandle onResize={handleListResize} />
+
         {/* Detail panel */}
-        <main className="flex-1 overflow-hidden flex flex-col bg-white">
+        <main className="flex-1 overflow-hidden flex flex-col bg-white min-w-0">
           <TCDetail section={section} />
         </main>
 
@@ -116,10 +191,9 @@ export default function TCSection({ section }) {
         {showImport && <ExcelImport section={section} onClose={handleImportClose} />}
       </div>
 
-      {/* Drag overlay — floating label that follows the cursor */}
       <DragOverlay>
         {activeDrag && (
-          <div className="bg-white border border-blue-300 shadow-lg rounded-lg px-3 py-2 text-sm text-gray-700 max-w-[200px] truncate">
+          <div className="bg-white border border-arista-300 shadow-lg rounded-lg px-3 py-2 text-sm text-gray-700 max-w-[200px] truncate">
             {activeDrag.type === 'tc' ? `TC: ${activeDrag.title}` : `Folder: ${activeDrag.name}`}
           </div>
         )}

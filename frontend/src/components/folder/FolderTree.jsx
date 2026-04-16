@@ -54,10 +54,14 @@ function FolderNode({ node, section, depth = 0 }) {
     <div ref={setDropRef}>
       <div
         ref={setDragRef}
-        className={`flex items-center gap-1 px-2 py-1 rounded cursor-pointer group select-none transition-colors ${
-          isOver ? 'bg-blue-200 ring-2 ring-blue-400 ring-inset' :
-          isSelected ? 'bg-blue-100 text-blue-800' : 'hover:bg-gray-100 text-gray-700'
-        } ${isDragging ? 'opacity-40' : ''}`}
+        className={`flex items-center gap-1 px-2 py-1 rounded cursor-pointer group select-none transition-colors ${isDragging ? 'opacity-40' : ''}`}
+        style={
+          isOver ? { background: '#d0def4', outline: '2px solid #3d8bfd', outlineOffset: '-2px' } :
+          isSelected ? { background: '#dbeafe', color: '#0e2e5b' } :
+          {}
+        }
+        onMouseEnter={e => { if (!isSelected && !isOver) e.currentTarget.style.background = '#f0f5fc'; }}
+        onMouseLeave={e => { if (!isSelected && !isOver) e.currentTarget.style.background = ''; }}
         style={{ paddingLeft: `${8 + depth * 16}px` }}
         onClick={handleSelect}
       >
@@ -76,15 +80,15 @@ function FolderNode({ node, section, depth = 0 }) {
             : <span className="w-3.5 inline-block" />}
         </button>
 
-        {open ? <FolderOpen size={14} className="text-blue-500 shrink-0" />
-               : <Folder size={14} className="text-blue-400 shrink-0" />}
+        {open ? <FolderOpen size={14} style={{ color: '#1a56b0' }} className="shrink-0" />
+               : <Folder size={14} style={{ color: '#3d8bfd' }} className="shrink-0" />}
 
         <span className="flex-1 text-sm truncate">{node.name}</span>
 
         {canEdit && (
           <span className="hidden group-hover:flex items-center gap-1">
             <button onClick={(e) => { e.stopPropagation(); setAdding(a => !a); }} title="Add subfolder">
-              <Plus size={13} className="text-gray-400 hover:text-blue-600" />
+              <Plus size={13} className="text-gray-400 hover:text-arista-500" />
             </button>
             <button onClick={handleDelete} title="Delete folder">
               <Trash2 size={13} className="text-gray-400 hover:text-red-500" />
@@ -112,7 +116,7 @@ function FolderNode({ node, section, depth = 0 }) {
                 value={newName}
                 onChange={e => setNewName(e.target.value)}
               />
-              <button type="submit" className="text-xs text-blue-600 font-medium">Add</button>
+              <button type="submit" className="text-xs text-arista-500 font-medium">Add</button>
               <button type="button" onClick={() => setAdding(false)} className="text-xs text-gray-400">&times;</button>
             </form>
           )}
@@ -146,16 +150,16 @@ export default function FolderTree({ section }) {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100">
-        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Folders</span>
+      <div className="flex items-center justify-between px-3 py-2 border-b" style={{ borderColor: '#d0def4' }}>
+        <span className="text-xs font-bold uppercase tracking-wide" style={{ color: '#0e2e5b' }}>Folders</span>
         {canEdit && (
           <button onClick={() => setAdding(a => !a)} title="New top-level folder">
-            <Plus size={14} className="text-gray-400 hover:text-blue-600" />
+            <Plus size={14} className="text-gray-400 hover:text-arista-500" />
           </button>
         )}
       </div>
 
-      <div ref={setRootDropRef} className={`flex-1 overflow-y-auto py-1 transition-colors ${isOverRoot ? 'bg-blue-50' : ''}`}>
+      <div ref={setRootDropRef} className={`flex-1 overflow-y-auto py-1 transition-colors ${isOverRoot ? 'bg-arista-50' : ''}`}>
         {tree.map(node => (
           <FolderNode key={node.id} node={node} section={section} />
         ))}
@@ -169,7 +173,7 @@ export default function FolderTree({ section }) {
               value={newName}
               onChange={e => setNewName(e.target.value)}
             />
-            <button type="submit" className="text-xs text-blue-600 font-medium">Add</button>
+            <button type="submit" className="text-xs text-arista-500 font-medium">Add</button>
             <button type="button" onClick={() => setAdding(false)} className="text-xs text-gray-400">&times;</button>
           </form>
         )}

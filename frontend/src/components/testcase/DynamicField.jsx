@@ -18,7 +18,7 @@ export function DynamicFieldDisplay({ field, value }) {
 
 // Editable input for a single dynamic field
 export function DynamicFieldInput({ field, value, onChange }) {
-  const base = 'w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400';
+  const base = 'w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-arista-400';
 
   if (field.type === 'textarea') {
     return (
@@ -62,7 +62,7 @@ export function DynamicFieldInput({ field, value, onChange }) {
           id={field.key}
           checked={!!value}
           onChange={e => onChange(field.key, e.target.checked)}
-          className="w-4 h-4 accent-blue-600"
+          className="w-4 h-4 accent-arista-500"
         />
         <label htmlFor={field.key} className="text-sm text-gray-700">{field.label}</label>
       </div>

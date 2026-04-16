@@ -1,15 +1,36 @@
-import { FileText, Loader, GripVertical } from 'lucide-react';
+import { FileText, Loader, GripVertical, Folder, ChevronRight } from 'lucide-react';
 import { useDraggable } from '@dnd-kit/core';
 import useTCStore from '../../stores/useTCStore';
 import useSearchStore from '../../stores/useSearchStore';
 import useFolderStore from '../../stores/useFolderStore';
 import useAppStore from '../../stores/useAppStore';
-import { getSchema, getIdKey } from '../../schemas';
+import { getIdKey } from '../../schemas';
 import Pagination from '../common/Pagination';
 
 function badge(priority) {
   const colors = { P1: 'bg-red-100 text-red-700', P2: 'bg-orange-100 text-orange-700', P3: 'bg-green-100 text-green-700' };
   return colors[priority] || 'bg-gray-100 text-gray-600';
+}
+
+function SubFolderItem({ folder, section }) {
+  const { selectFolder } = useFolderStore();
+  const { fetchList } = useTCStore();
+
+  const handleClick = () => {
+    selectFolder(folder.id);
+    fetchList({ folder_id: folder.id, section });
+  };
+
+  return (
+    <div
+      onClick={handleClick}
+      className="px-4 py-2.5 cursor-pointer hover:bg-amber-50 transition-colors flex items-center gap-2 bg-gray-50"
+    >
+      <Folder size={14} className="text-amber-500 shrink-0" />
+      <span className="text-sm font-medium text-gray-700 flex-1 truncate">{folder.name}</span>
+      <ChevronRight size={14} className="text-gray-400 shrink-0" />
+    </div>
+  );
 }
 
 function DraggableTCItem({ tc, idKey, isActive, onSelect }) {
@@ -28,9 +49,10 @@ function DraggableTCItem({ tc, idKey, isActive, onSelect }) {
     <div
       ref={setNodeRef}
       onClick={() => onSelect(tc)}
-      className={`px-4 py-3 cursor-pointer hover:bg-blue-50 transition-colors ${
-        isActive ? 'bg-blue-50 border-l-2 border-blue-500' : ''
-      } ${isDragging ? 'opacity-40' : ''}`}
+      className={`px-4 py-3 cursor-pointer transition-colors ${isDragging ? 'opacity-40' : ''}`}
+      style={isActive ? { background: '#dbeafe', borderLeft: '3px solid #1a56b0' } : {}}
+      onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = '#f0f5fc'; }}
+      onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = ''; }}
     >
       <div className="flex items-start justify-between gap-2">
         {canEdit && (
@@ -55,10 +77,11 @@ function DraggableTCItem({ tc, idKey, isActive, onSelect }) {
 export default function TCList({ section }) {
   const { list, selectedTC, selectTC, loading, page, totalPages, total, setPage, fetchList } = useTCStore();
   const { results, mode } = useSearchStore();
-  const { selectedFolderId } = useFolderStore();
+  const { selectedFolderId, getChildren } = useFolderStore();
   const idKey = getIdKey(section);
 
   const items = mode !== 'idle' ? results : list;
+  const subFolders = mode === 'idle' && selectedFolderId ? getChildren(selectedFolderId) : [];
 
   if (loading) return (
     <div className="flex items-center justify-center h-40 text-gray-400">
@@ -66,7 +89,7 @@ export default function TCList({ section }) {
     </div>
   );
 
-  if (!items.length) return (
+  if (!items.length && !subFolders.length) return (
     <div className="flex flex-col items-center justify-center h-40 text-gray-400 gap-2">
       <FileText size={32} strokeWidth={1} />
       <p className="text-sm">No test cases found.</p>
@@ -81,6 +104,11 @@ export default function TCList({ section }) {
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-y-auto divide-y divide-gray-100">
+        {/* Sub-folders at the top */}
+        {subFolders.map(folder => (
+          <SubFolderItem key={folder.id} folder={folder} section={section} />
+        ))}
+        {/* TC items */}
         {items.map(tc => (
           <DraggableTCItem
             key={tc.id}

@@ -41,6 +41,21 @@ const useFolderStore = create((set, get) => ({
   },
 
   selectFolder: (id) => set({ selectedFolderId: id }),
+
+  // Find children of a folder in the tree
+  getChildren: (folderId) => {
+    if (!folderId) return [];
+    const { tree } = get();
+    function findNode(nodes) {
+      for (const n of nodes) {
+        if (n.id === folderId) return n.children || [];
+        const found = findNode(n.children || []);
+        if (found) return found;
+      }
+      return null;
+    }
+    return findNode(tree) || [];
+  },
 }));
 
 export default useFolderStore;

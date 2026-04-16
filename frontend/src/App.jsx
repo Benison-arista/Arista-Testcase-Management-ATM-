@@ -10,7 +10,7 @@ export default function App() {
   if (!user) return <UserPrompt />;
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="flex flex-col h-screen" style={{ background: '#f5f8fc' }}>
       <TopBar />
       <div className="flex flex-1 overflow-hidden">
         {activeTab === 'velocloud' && <TCSection section="velocloud" />}

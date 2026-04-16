@@ -1,5 +1,5 @@
 import { useRef, useCallback } from 'react';
-import { Search, LogOut, Shield } from 'lucide-react';
+import { Search, X, LogOut, Shield } from 'lucide-react';
 import useAppStore from '../../stores/useAppStore';
 import useSearchStore from '../../stores/useSearchStore';
 
@@ -15,16 +15,17 @@ const ROLE_LABEL = {
   run_manager: 'Run Manager',
 };
 
-const ROLE_STYLE = {
-  viewer: 'text-gray-500 border-gray-200 bg-gray-50',
-  editor: 'text-blue-600 border-blue-200 bg-blue-50',
-  run_manager: 'text-amber-700 border-amber-300 bg-amber-50',
+const ROLE_COLORS = {
+  viewer: { bg: '#6b7280', border: '#9ca3af' },
+  editor: { bg: '#1a56b0', border: '#3d8bfd' },
+  run_manager: { bg: '#d97706', border: '#fbbf24' },
 };
 
 export default function TopBar() {
   const { activeTab, setActiveTab, user, logout } = useAppStore();
   const { query, search, clearSearch } = useSearchStore();
   const searchTimeout = useRef(null);
+  const inputRef = useRef(null);
 
   const handleSearch = useCallback((e) => {
     const q = e.target.value;
@@ -34,25 +35,41 @@ export default function TopBar() {
     searchTimeout.current = setTimeout(() => {
       search(q, activeTab);
     }, 300);
-    // Update query immediately for input responsiveness
     useSearchStore.setState({ query: q });
   }, [activeTab, search, clearSearch]);
 
+  const handleClear = useCallback(() => {
+    clearSearch();
+    if (inputRef.current) inputRef.current.value = '';
+    inputRef.current?.focus();
+  }, [clearSearch]);
+
+  const roleColor = ROLE_COLORS[user?.role] || ROLE_COLORS.viewer;
+
   return (
-    <header className="bg-white border-b border-gray-200 flex items-center gap-4 px-4 h-14 shrink-0">
+    <header
+      style={{ background: 'linear-gradient(135deg, #0e2e5b 0%, #1a3a6b 50%, #1a56b0 100%)' }}
+      className="flex items-center gap-4 px-5 h-14 shrink-0 shadow-lg"
+    >
       {/* Brand */}
-      <span className="font-bold text-blue-700 text-lg whitespace-nowrap">ATM</span>
+      <span className="font-extrabold text-white text-xl whitespace-nowrap tracking-tight drop-shadow-sm">
+        ATM
+      </span>
 
       {/* Tabs */}
-      <nav className="flex gap-1">
+      <nav className="flex gap-1 ml-2">
         {TABS.map(t => (
           <button
             key={t.key}
-            onClick={() => { setActiveTab(t.key); clearSearch(); }}
-            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+            onClick={() => { setActiveTab(t.key); clearSearch(); if (inputRef.current) inputRef.current.value = ''; }}
+            style={activeTab === t.key
+              ? { background: '#3d8bfd', color: '#fff' }
+              : {}
+            }
+            className={`px-3.5 py-1.5 rounded-md text-sm font-semibold transition-all ${
               activeTab === t.key
-                ? 'bg-blue-600 text-white'
-                : 'text-gray-600 hover:bg-gray-100'
+                ? 'shadow-md'
+                : 'text-blue-100 hover:bg-white/15'
             }`}
           >
             {t.label}
@@ -62,32 +79,46 @@ export default function TopBar() {
 
       {/* Search */}
       {activeTab !== 'runs' && (
-        <div className="flex-1 max-w-md relative">
-          <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+        <div className="flex-1 max-w-md relative ml-4">
+          <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-blue-200" />
           <input
-            className="w-full border border-gray-300 rounded-lg pl-8 pr-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+            ref={inputRef}
+            style={{ background: 'rgba(255,255,255,0.15)', borderColor: 'rgba(255,255,255,0.25)' }}
+            className="w-full border rounded-lg pl-8 pr-8 py-1.5 text-sm text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-white/40 focus:bg-white/20"
             placeholder="Search by ID or keyword..."
             defaultValue={query}
             onChange={handleSearch}
           />
+          {query && (
+            <button
+              onClick={handleClear}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-blue-200 hover:text-white p-0.5 rounded-full hover:bg-white/20"
+              title="Clear search"
+            >
+              <X size={14} />
+            </button>
+          )}
         </div>
       )}
 
       <div className="ml-auto flex items-center gap-3">
         {/* Role badge */}
-        <span className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium border ${ROLE_STYLE[user?.role] || ROLE_STYLE.viewer}`}>
-          <Shield size={13} />
+        <span
+          style={{ backgroundColor: roleColor.bg, borderColor: roleColor.border }}
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold text-white border"
+        >
+          <Shield size={12} />
           {ROLE_LABEL[user?.role] || 'Viewer'}
         </span>
 
         {/* User name */}
-        <span className="text-xs text-gray-500">{user?.username}</span>
+        <span className="text-sm text-blue-100 font-medium">{user?.username}</span>
 
         {/* Logout */}
         <button
           onClick={logout}
           title="Sign out"
-          className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
+          className="p-1.5 text-blue-200 hover:text-white hover:bg-white/15 rounded-md transition-colors"
         >
           <LogOut size={14} />
         </button>

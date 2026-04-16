@@ -153,7 +153,7 @@ export default function ExcelImport({ section, onClose }) {
 
         <div className="px-5 py-4">
           {step === 'upload' && !reading && (
-            <label className="flex flex-col items-center gap-3 border-2 border-dashed border-gray-300 rounded-xl p-8 cursor-pointer hover:border-blue-400 transition-colors">
+            <label className="flex flex-col items-center gap-3 border-2 border-dashed border-gray-300 rounded-xl p-8 cursor-pointer hover:border-arista-400 transition-colors">
               <Upload size={32} className="text-gray-400" />
               <span className="text-sm text-gray-500">Click to upload or drag an .xlsx / .xls / .csv file</span>
               <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleFile} />
@@ -161,9 +161,9 @@ export default function ExcelImport({ section, onClose }) {
           )}
 
           {step === 'upload' && (reading || parsing) && (
-            <div className="flex flex-col gap-4 border-2 border-blue-200 bg-blue-50 rounded-xl p-8">
+            <div className="flex flex-col gap-4 border-2 border-arista-200 bg-arista-50 rounded-xl p-8">
               <div className="flex items-center gap-3">
-                <FileSpreadsheet size={24} className="text-blue-500 shrink-0" />
+                <FileSpreadsheet size={24} className="text-arista-500 shrink-0" />
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-gray-800 truncate">{fileName}</p>
                   <p className="text-xs text-gray-500 mt-0.5">
@@ -171,22 +171,22 @@ export default function ExcelImport({ section, onClose }) {
                   </p>
                 </div>
                 {reading && (
-                  <span className="text-sm font-semibold text-blue-600 shrink-0">{readProgress}%</span>
+                  <span className="text-sm font-semibold text-arista-500 shrink-0">{readProgress}%</span>
                 )}
               </div>
               {/* Determinate bar during file read */}
               {reading && (
-                <div className="w-full bg-blue-200 rounded-full h-2.5 overflow-hidden">
+                <div className="w-full bg-arista-200 rounded-full h-2.5 overflow-hidden">
                   <div
-                    className="bg-blue-500 h-2.5 rounded-full transition-all duration-150"
+                    className="bg-arista-500 h-2.5 rounded-full transition-all duration-150"
                     style={{ width: `${readProgress}%` }}
                   />
                 </div>
               )}
               {/* Indeterminate bar during XLSX parsing */}
               {parsing && (
-                <div className="w-full bg-blue-200 rounded-full h-2.5 overflow-hidden">
-                  <div className="h-2.5 w-2/5 bg-blue-500 rounded-full animate-indeterminate" />
+                <div className="w-full bg-arista-200 rounded-full h-2.5 overflow-hidden">
+                  <div className="h-2.5 w-2/5 bg-arista-500 rounded-full animate-indeterminate" />
                 </div>
               )}
             </div>
@@ -203,7 +203,7 @@ export default function ExcelImport({ section, onClose }) {
                     key={name}
                     className={`flex items-center gap-3 px-4 py-3 rounded-lg border cursor-pointer transition-colors ${
                       selectedSheet === name
-                        ? 'border-blue-500 bg-blue-50'
+                        ? 'border-arista-500 bg-arista-50'
                         : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                     }`}
                   >
@@ -213,7 +213,7 @@ export default function ExcelImport({ section, onClose }) {
                       value={name}
                       checked={selectedSheet === name}
                       onChange={() => setSelectedSheet(name)}
-                      className="accent-blue-600"
+                      className="accent-arista-500"
                     />
                     <span className="text-sm text-gray-800">{name}</span>
                   </label>
@@ -253,7 +253,7 @@ export default function ExcelImport({ section, onClose }) {
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div
-                  className="bg-blue-500 h-2 rounded-full transition-all"
+                  className="bg-arista-500 h-2 rounded-full transition-all"
                   style={{ width: `${(importProgress.done / importProgress.total) * 100}%` }}
                 />
               </div>
@@ -277,7 +277,7 @@ export default function ExcelImport({ section, onClose }) {
           {step === 'sheet' && (
             <button
               onClick={handleSheetConfirm}
-              className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className="px-4 py-2 text-sm bg-arista-500 text-white rounded-lg hover:bg-arista-600"
             >
               Use this sheet →
             </button>

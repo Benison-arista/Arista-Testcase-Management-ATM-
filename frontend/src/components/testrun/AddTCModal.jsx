@@ -46,7 +46,7 @@ export default function AddTCModal({ onClose }) {
           <div className="relative">
             <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
-              className="w-full border border-gray-300 rounded-lg pl-8 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="w-full border border-gray-300 rounded-lg pl-8 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-arista-400"
               placeholder="Search by ID or keyword…"
               value={query}
               onChange={handleSearch}
@@ -69,7 +69,7 @@ export default function AddTCModal({ onClose }) {
                   type="checkbox"
                   checked={selected.has(tc.id)}
                   onChange={() => toggleSelect(tc.id)}
-                  className="w-4 h-4 accent-blue-600"
+                  className="w-4 h-4 accent-arista-500"
                 />
                 <div className="min-w-0">
                   <p className="text-sm text-gray-800 truncate">{title}</p>
@@ -87,7 +87,7 @@ export default function AddTCModal({ onClose }) {
             <button
               onClick={handleAdd}
               disabled={!selected.size}
-              className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-40 flex items-center gap-1"
+              className="px-4 py-2 text-sm bg-arista-500 text-white rounded-lg hover:bg-arista-600 disabled:opacity-40 flex items-center gap-1"
             >
               <Plus size={14} /> Add {selected.size > 0 ? selected.size : ''}
             </button>

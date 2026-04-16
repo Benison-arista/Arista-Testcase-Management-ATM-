@@ -69,7 +69,8 @@ export default function TCForm({ section, initial = null, onClose }) {
           <button
             type="submit"
             disabled={saving}
-            className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            style={{ background: saving ? '#9ca3af' : '#1a56b0' }}
+            className="px-4 py-2 text-sm text-white rounded-lg hover:opacity-90 disabled:opacity-50 transition-all font-semibold"
           >
             {saving ? 'Saving…' : (initial ? 'Save Changes' : 'Create')}
           </button>
