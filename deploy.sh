@@ -87,7 +87,7 @@ SQL
 # --------------------------------------------------------------------------- #
 log "Building frontend..."
 cd "$SCRIPT_DIR/frontend"
-npm ci
+npm install
 npm run build
 
 # --------------------------------------------------------------------------- #
@@ -95,7 +95,7 @@ npm run build
 # --------------------------------------------------------------------------- #
 log "Installing backend dependencies..."
 cd "$SCRIPT_DIR/backend"
-npm ci --omit=dev
+npm install --omit=dev
 
 # Write runtime .env for the backend
 cat > .env <<ENV
