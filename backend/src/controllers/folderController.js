@@ -15,7 +15,7 @@ async function getTree(req, res, next) {
          FROM folders f
          JOIN tree t ON f.parent_id = t.id
        )
-       SELECT * FROM tree ORDER BY name LIMIT 1000`,
+       SELECT * FROM tree ORDER BY name LIMIT 10000`,
       [section]
     );
     res.json(rows);

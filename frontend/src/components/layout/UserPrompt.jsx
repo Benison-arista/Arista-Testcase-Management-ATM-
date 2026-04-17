@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import useAppStore from '../../stores/useAppStore';
+import atmLogo from '../../assets/atm-logo.png';
 
 export default function UserPrompt() {
   const [username, setUsername] = useState('');
@@ -32,9 +33,8 @@ export default function UserPrompt() {
         className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-sm flex flex-col gap-5"
         style={{ borderTop: '4px solid #3d8bfd' }}
       >
-        <div>
-          <h2 style={{ color: '#0e2e5b' }} className="text-2xl font-extrabold tracking-tight">ATM</h2>
-          <p className="text-sm text-gray-500 mt-1">Arista Testcase Management</p>
+        <div className="flex flex-col items-center">
+          <img src={atmLogo} alt="ATM - Arista Testcase Management" className="h-16 mb-1" />
         </div>
 
         {error && (

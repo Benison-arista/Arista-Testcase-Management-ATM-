@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { SlidersHorizontal, FileText, FolderOpen, GripVertical, ArrowLeft, ArrowRight, Pencil, Check, X } from 'lucide-react';
+import { SlidersHorizontal, FileText, FolderOpen, GripVertical, ArrowLeft, ArrowRight, Pencil, Check, X, Filter } from 'lucide-react';
 import { useDraggable } from '@dnd-kit/core';
 import { DndContext as SortDndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
@@ -10,6 +10,12 @@ import useFolderStore from '../../stores/useFolderStore';
 import useAppStore from '../../stores/useAppStore';
 import { getSchema } from '../../schemas';
 import Pagination from '../common/Pagination';
+
+// Fields available for filtering (select/boolean types + key text fields)
+const FILTER_FIELDS = [
+  'priority', 'state', 'status', 'automatable_call', 'automation_status',
+  'pillar', 'customer_found', 'template', 'module', 'section',
+];
 
 const DEFAULT_COLUMNS = {
   velocloud: ['qtest_id', 'title', 'testrail_id', 'priority'],
@@ -144,7 +150,9 @@ function DraggableRow({ tc, columns, colWidths, onSelect, editingColumns }) {
     <tr
       ref={setNodeRef}
       onClick={() => !editingColumns && onSelect(tc)}
-      className={`cursor-pointer hover:bg-arista-50 transition-colors ${isDragging ? 'opacity-40' : ''}`}
+      className={`cursor-pointer transition-colors ${isDragging ? 'opacity-40' : ''}`}
+      onMouseEnter={e => { e.currentTarget.style.background = '#e0eaf7'; }}
+      onMouseLeave={e => { e.currentTarget.style.background = ''; }}
     >
       {canEdit && !editingColumns && (
         <td className="pl-3 pr-0 py-2.5 w-6">
@@ -209,6 +217,12 @@ export default function TCTable({ section }) {
   const [draftKeys, setDraftKeys] = useState(null);
   const [draftWidths, setDraftWidths] = useState(null);
 
+  // Filters: { fieldKey: Set of selected values } — empty means no filter
+  const [filters, setFilters] = useState({});
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [activeFilterField, setActiveFilterField] = useState(null);
+  const filterRef = useRef(null);
+
   // Full ordered list of all schema keys
   const [allKeysOrdered, setAllKeysOrdered] = useState(() => {
     const stored = loadColumns(section);
@@ -227,6 +241,8 @@ export default function TCTable({ section }) {
     setEditingColumns(false);
     setDraftKeys(null);
     setDraftWidths(null);
+    setFilters({});
+    setFilterOpen(false);
   }, [section]);
 
   useEffect(() => {
@@ -239,7 +255,64 @@ export default function TCTable({ section }) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [pickerOpen]);
 
-  const items = mode !== 'idle' ? results : list;
+  useEffect(() => {
+    function handleFilterClickOutside(e) {
+      if (filterRef.current && !filterRef.current.contains(e.target)) {
+        setFilterOpen(false);
+      }
+    }
+    if (filterOpen) document.addEventListener('mousedown', handleFilterClickOutside);
+    return () => document.removeEventListener('mousedown', handleFilterClickOutside);
+  }, [filterOpen]);
+
+  const rawItems = mode !== 'idle' ? results : list;
+
+  // Apply client-side filters
+  const activeFilterCount = Object.values(filters).filter(s => s.size > 0).length;
+  const items = activeFilterCount === 0 ? rawItems : rawItems.filter(tc => {
+    for (const [key, allowed] of Object.entries(filters)) {
+      if (allowed.size === 0) continue;
+      const val = tc.data?.[key];
+      const strVal = val === true ? 'Yes' : val === false ? 'No' : (val == null || val === '' ? '(empty)' : String(val));
+      if (!allowed.has(strVal)) return false;
+    }
+    return true;
+  });
+
+  // Get unique values for a filter field from current raw items
+  function getUniqueValues(fieldKey) {
+    const vals = new Set();
+    rawItems.forEach(tc => {
+      const val = tc.data?.[fieldKey];
+      if (val === true) vals.add('Yes');
+      else if (val === false) vals.add('No');
+      else if (val == null || val === '') vals.add('(empty)');
+      else vals.add(String(val));
+    });
+    return [...vals].sort((a, b) => a === '(empty)' ? 1 : b === '(empty)' ? -1 : a.localeCompare(b));
+  }
+
+  function toggleFilter(fieldKey, value) {
+    setFilters(prev => {
+      const current = prev[fieldKey] || new Set();
+      const next = new Set(current);
+      if (next.has(value)) next.delete(value);
+      else next.add(value);
+      return { ...prev, [fieldKey]: next };
+    });
+  }
+
+  function clearFilter(fieldKey) {
+    setFilters(prev => {
+      const next = { ...prev };
+      delete next[fieldKey];
+      return next;
+    });
+  }
+
+  function clearAllFilters() {
+    setFilters({});
+  }
 
   const activeKeys = editingColumns && draftKeys ? draftKeys : visibleKeys;
   const activeWidths = editingColumns && draftWidths ? draftWidths : colWidths;
@@ -390,7 +463,10 @@ export default function TCTable({ section }) {
       {/* Toolbar */}
       <div className="flex items-center justify-between px-4 py-2 shrink-0" style={{ borderBottom: '1px solid #d0def4', background: '#f0f5fc' }}>
         <span className="text-xs text-gray-500 font-medium">
-          {(mode !== 'idle' ? searchTotal : total) || items.length} test case{((mode !== 'idle' ? searchTotal : total) || items.length) !== 1 ? 's' : ''}
+          {activeFilterCount > 0
+            ? items.length + ' of ' + ((mode !== 'idle' ? searchTotal : total) || rawItems.length) + ' test cases (filtered)'
+            : ((mode !== 'idle' ? searchTotal : total) || items.length) + ' test case' + (((mode !== 'idle' ? searchTotal : total) || items.length) !== 1 ? 's' : '')
+          }
         </span>
         <div className="flex items-center gap-2">
           {editingColumns ? (
@@ -411,6 +487,91 @@ export default function TCTable({ section }) {
             </div>
           ) : (
             <>
+              {/* Filter button */}
+              <div className="relative" ref={filterRef}>
+                <button
+                  onClick={() => { setFilterOpen(v => !v); setPickerOpen(false); }}
+                  style={activeFilterCount > 0 ? { color: '#0e6856', borderColor: '#6ee7b7', background: '#ecfdf5' } : {}}
+                  className={`flex items-center gap-1 text-xs border rounded px-2 py-1 ${
+                    activeFilterCount > 0
+                      ? 'font-semibold'
+                      : 'text-gray-500 hover:text-gray-700 border-gray-200 bg-white hover:bg-gray-100'
+                  }`}
+                  title="Filter test cases"
+                >
+                  <Filter size={12} /> Filter
+                  {activeFilterCount > 0 && (
+                    <span style={{ background: '#0e6856' }} className="text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center ml-0.5">
+                      {activeFilterCount}
+                    </span>
+                  )}
+                </button>
+                {filterOpen && (
+                  <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-30 min-w-[280px] max-h-[450px] flex flex-col" onClick={e => e.stopPropagation()}>
+                    {/* Filter header */}
+                    <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100">
+                      <span className="text-xs font-bold text-gray-600 uppercase tracking-wide">Filters</span>
+                      {activeFilterCount > 0 && (
+                        <button onClick={clearAllFilters} className="text-xs text-red-500 hover:text-red-700 font-medium">
+                          Clear all
+                        </button>
+                      )}
+                    </div>
+                    {/* Filter field tabs */}
+                    <div className="flex border-b border-gray-100 overflow-x-auto shrink-0">
+                      {FILTER_FIELDS.map(key => {
+                        const field = schema.find(f => f.key === key);
+                        if (!field) return null;
+                        const isActive = activeFilterField === key;
+                        const hasFilter = filters[key]?.size > 0;
+                        return (
+                          <button
+                            key={key}
+                            onClick={() => setActiveFilterField(isActive ? null : key)}
+                            className={`px-3 py-1.5 text-xs whitespace-nowrap border-b-2 transition-colors ${
+                              isActive ? 'border-arista-500 font-semibold' : 'border-transparent hover:bg-gray-50'
+                            }`}
+                            style={isActive ? { color: '#1a56b0' } : hasFilter ? { color: '#0e6856', fontWeight: 600 } : { color: '#6b7280' }}
+                          >
+                            {field.label}
+                            {hasFilter && <span className="ml-1 text-[10px]">({filters[key].size})</span>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {/* Filter values for selected field */}
+                    <div className="flex-1 overflow-y-auto p-2">
+                      {activeFilterField ? (
+                        <>
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs text-gray-400">{getUniqueValues(activeFilterField).length} values</span>
+                            {filters[activeFilterField]?.size > 0 && (
+                              <button onClick={() => clearFilter(activeFilterField)} className="text-xs text-red-500 hover:text-red-700">Clear</button>
+                            )}
+                          </div>
+                          {getUniqueValues(activeFilterField).map(val => {
+                            const isChecked = filters[activeFilterField]?.has(val) || false;
+                            return (
+                              <label key={val} className="flex items-center gap-2 px-2 py-1 hover:bg-gray-50 rounded cursor-pointer text-sm text-gray-700">
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={() => toggleFilter(activeFilterField, val)}
+                                  className="accent-arista-500"
+                                />
+                                <span className={val === '(empty)' ? 'italic text-gray-400' : ''}>{val}</span>
+                              </label>
+                            );
+                          })}
+                        </>
+                      ) : (
+                        <p className="text-xs text-gray-400 text-center py-4">Select a field above to filter by its values</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <button
                 onClick={startEditColumns}
                 className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 border border-gray-200 bg-white rounded px-2 py-1 hover:bg-gray-100"

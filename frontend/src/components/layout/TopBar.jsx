@@ -2,6 +2,7 @@ import { useRef, useCallback } from 'react';
 import { Search, X, LogOut, Shield } from 'lucide-react';
 import useAppStore from '../../stores/useAppStore';
 import useSearchStore from '../../stores/useSearchStore';
+import atmLogo from '../../assets/atm-logo.png';
 
 const TABS = [
   { key: 'velocloud', label: 'VeloCloud TCs' },
@@ -51,10 +52,10 @@ export default function TopBar() {
       style={{ background: 'linear-gradient(135deg, #0e2e5b 0%, #1a3a6b 50%, #1a56b0 100%)' }}
       className="flex items-center gap-4 px-5 h-14 shrink-0 shadow-lg"
     >
-      {/* Brand */}
-      <span className="font-extrabold text-white text-xl whitespace-nowrap tracking-tight drop-shadow-sm">
-        ATM
-      </span>
+      {/* Brand logo */}
+      <a href="/" className="shrink-0 flex items-center" title="ATM - Arista Testcase Management">
+        <img src={atmLogo} alt="ATM" className="h-10 drop-shadow-sm" />
+      </a>
 
       {/* Tabs */}
       <nav className="flex gap-1 ml-2">

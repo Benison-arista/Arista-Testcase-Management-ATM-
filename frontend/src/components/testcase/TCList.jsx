@@ -51,7 +51,7 @@ function DraggableTCItem({ tc, idKey, isActive, onSelect }) {
       onClick={() => onSelect(tc)}
       className={`px-4 py-3 cursor-pointer transition-colors ${isDragging ? 'opacity-40' : ''}`}
       style={isActive ? { background: '#dbeafe', borderLeft: '3px solid #1a56b0' } : {}}
-      onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = '#f0f5fc'; }}
+      onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = '#e0eaf7'; }}
       onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = ''; }}
     >
       <div className="flex items-start justify-between gap-2">

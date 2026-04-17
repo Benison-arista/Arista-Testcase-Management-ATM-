@@ -253,7 +253,7 @@ export default function TCDetail({ section }) {
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <button onClick={handleHistory} className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 border border-gray-200 rounded px-2 py-1">
+          <button onClick={handleHistory} style={{ color: '#0e6856', borderColor: '#6ee7b7', background: '#ecfdf5' }} className="flex items-center gap-1 text-xs font-medium hover:opacity-80 border rounded px-2 py-1">
             <History size={13} /> History
           </button>
           {canEdit && (
