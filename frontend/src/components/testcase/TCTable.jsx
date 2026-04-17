@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { SlidersHorizontal, FileText, FolderOpen, GripVertical, ArrowLeft, ArrowRight, Pencil, Check, X, Filter } from 'lucide-react';
+import { SlidersHorizontal, FileText, FolderOpen, GripVertical, ArrowLeft, ArrowRight, Pencil, Check, X, Filter, CheckSquare } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useDraggable } from '@dnd-kit/core';
 import { DndContext as SortDndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
@@ -140,7 +140,7 @@ function SortablePickerItem({ field, isVisible, onToggle }) {
   );
 }
 
-function DraggableRow({ tc, columns, colWidths, onSelect, editingColumns, section }) {
+function DraggableRow({ tc, columns, colWidths, onSelect, editingColumns, section, selectMode, checked, onToggle }) {
   const navigate = useNavigate();
   const { selectedFolderId } = useFolderStore();
   const canEdit = useAppStore(s => s.isEditor());
@@ -157,6 +157,7 @@ function DraggableRow({ tc, columns, colWidths, onSelect, editingColumns, sectio
       ref={setNodeRef}
       onClick={() => {
         if (editingColumns) return;
+        if (selectMode) { onToggle(tc.id); return; }
         onSelect(tc);
         const fid = tc.folder_id || selectedFolderId;
         if (fid) navigate('/' + section + '/folder/' + fid + '/tc/' + tc.id);
@@ -165,7 +166,12 @@ function DraggableRow({ tc, columns, colWidths, onSelect, editingColumns, sectio
       onMouseEnter={e => { e.currentTarget.style.background = '#e0eaf7'; }}
       onMouseLeave={e => { e.currentTarget.style.background = ''; }}
     >
-      {canEdit && !editingColumns && (
+      {selectMode && (
+        <td className="pl-3 pr-0 py-2.5 w-8" onClick={e => e.stopPropagation()}>
+          <input type="checkbox" checked={checked} onChange={() => onToggle(tc.id)} className="accent-arista-500" />
+        </td>
+      )}
+      {canEdit && !editingColumns && !selectMode && (
         <td className="pl-3 pr-0 py-2.5 w-6">
           <span {...listeners} {...attributes} className="cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500" onClick={e => e.stopPropagation()}>
             <GripVertical size={12} />
@@ -209,7 +215,7 @@ function DraggableRow({ tc, columns, colWidths, onSelect, editingColumns, sectio
 
 export default function TCTable({ section }) {
   const canEdit = useAppStore(s => s.isEditor());
-  const { list, selectTC, page, totalPages, total, setPage, fetchList } = useTCStore();
+  const { list, selectTC, page, totalPages, total, setPage, fetchList, updateTC } = useTCStore();
   const { results, mode, total: searchTotal, page: searchPage, totalPages: searchTotalPages } = useSearchStore();
   const { selectedFolderId } = useFolderStore();
   const schema = getSchema(section);
@@ -227,6 +233,12 @@ export default function TCTable({ section }) {
   const [editingColumns, setEditingColumns] = useState(false);
   const [draftKeys, setDraftKeys] = useState(null);
   const [draftWidths, setDraftWidths] = useState(null);
+
+  // Bulk select & update mode
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedTCIds, setSelectedTCIds] = useState(new Set());
+  const [bulkValues, setBulkValues] = useState({});
+  const [bulkSaving, setBulkSaving] = useState(false);
 
   // Filters: { fieldKey: Set of selected values } — empty means no filter
   const [filters, setFilters] = useState({});
@@ -412,6 +424,33 @@ export default function TCTable({ section }) {
     setDraftKeys(null);
     setDraftWidths(null);
   }
+
+  // Bulk select helpers
+  const toggleTCSelect = (id) => setSelectedTCIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const toggleAllTCs = () => {
+    if (selectedTCIds.size === items.length) setSelectedTCIds(new Set());
+    else setSelectedTCIds(new Set(items.map(tc => tc.id)));
+  };
+  const exitSelectMode = () => { setSelectMode(false); setSelectedTCIds(new Set()); setBulkValues({}); };
+
+  const handleBulkSave = async () => {
+    if (selectedTCIds.size === 0 || Object.keys(bulkValues).length === 0) return;
+    setBulkSaving(true);
+    try {
+      for (const tcId of selectedTCIds) {
+        const tc = items.find(t => t.id === tcId);
+        if (!tc) continue;
+        const updatedData = { ...tc.data, ...bulkValues };
+        await updateTC(tcId, { data: updatedData, version: tc.version });
+      }
+      // Refresh the list
+      fetchList({ folder_id: selectedFolderId, section, page });
+      exitSelectMode();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Bulk update failed');
+    }
+    setBulkSaving(false);
+  };
 
   // Auto-fit column width to longest content on double-click
   function autoFitColumn(colKey) {
@@ -622,17 +661,70 @@ export default function TCTable({ section }) {
                   </div>
                 )}
               </div>
+              {/* Select multiple button */}
+              {canEdit && !selectMode && (
+                <button
+                  onClick={() => setSelectMode(true)}
+                  style={{ color: '#0e2e5b', borderColor: '#a1bde9', background: '#dbeafe' }}
+                  className="flex items-center gap-1 text-xs font-semibold border rounded px-2 py-1 hover:opacity-85 transition-opacity"
+                >
+                  <CheckSquare size={12} /> Select multiple
+                </button>
+              )}
+              {selectMode && (
+                <button
+                  onClick={exitSelectMode}
+                  className="flex items-center gap-1 text-xs font-medium border border-gray-300 rounded px-2 py-1 text-gray-500 hover:bg-gray-100"
+                >
+                  Exit selection
+                </button>
+              )}
             </>
           )}
         </div>
       </div>
+
+      {/* Bulk update bar */}
+      {selectMode && selectedTCIds.size > 0 && (
+        <div className="flex items-center gap-3 px-4 py-2 shrink-0 flex-wrap" style={{ background: '#dbeafe', borderBottom: '1px solid #a1bde9' }}>
+          <span className="text-xs font-semibold" style={{ color: '#0e2e5b' }}>{selectedTCIds.size} selected</span>
+          <span className="text-xs text-gray-400">Update:</span>
+          <select className="text-xs border border-gray-300 rounded px-1.5 py-0.5" value={bulkValues.priority || ''} onChange={e => setBulkValues(prev => ({ ...prev, priority: e.target.value || undefined }))}>
+            <option value="">Priority</option>
+            <option value="P1">P1</option><option value="P2">P2</option><option value="P3">P3</option>
+          </select>
+          <select className="text-xs border border-gray-300 rounded px-1.5 py-0.5" value={bulkValues.pillar || ''} onChange={e => setBulkValues(prev => ({ ...prev, pillar: e.target.value || undefined }))}>
+            <option value="">Pillar</option>
+            <option value="Management Plane">Management Plane</option><option value="Data Plane">Data Plane</option><option value="Platform">Platform</option><option value="Interop">Interop</option>
+          </select>
+          <select className="text-xs border border-gray-300 rounded px-1.5 py-0.5" value={bulkValues.automatable_call || ''} onChange={e => setBulkValues(prev => ({ ...prev, automatable_call: e.target.value || undefined }))}>
+            <option value="">Automatable</option>
+            <option value="Yes">Yes</option><option value="No">No</option>
+          </select>
+          <select className="text-xs border border-gray-300 rounded px-1.5 py-0.5" value={bulkValues.automation_status || ''} onChange={e => setBulkValues(prev => ({ ...prev, automation_status: e.target.value || undefined }))}>
+            <option value="">Automation Status</option>
+            <option value="Not Automated">Not Automated</option><option value="Automated">Automated</option><option value="In Progress">In Progress</option>
+          </select>
+          <select className="text-xs border border-gray-300 rounded px-1.5 py-0.5" value={bulkValues.state || ''} onChange={e => setBulkValues(prev => ({ ...prev, state: e.target.value || undefined }))}>
+            <option value="">State</option>
+            <option value="Active">Active</option><option value="Draft">Draft</option><option value="Deprecated">Deprecated</option>
+          </select>
+          <div className="flex items-center gap-1 ml-auto">
+            <button onClick={handleBulkSave} disabled={bulkSaving || Object.keys(bulkValues).filter(k => bulkValues[k]).length === 0} className="text-xs font-semibold px-2.5 py-1 rounded" style={{ color: '#fff', background: bulkSaving ? '#9ca3af' : '#22c55e' }}>
+              {bulkSaving ? 'Saving...' : 'Apply'}
+            </button>
+            <button onClick={exitSelectMode} className="text-xs font-medium px-2 py-1 rounded text-gray-500 hover:bg-gray-200">Cancel</button>
+          </div>
+        </div>
+      )}
 
       {/* Table */}
       <div className="flex-1 overflow-auto">
         <table className="text-sm border-collapse" style={{ tableLayout: 'fixed', minWidth: '100%' }}>
           <thead className="sticky top-0 z-10" style={{ background: '#e8f0fe', boxShadow: '0 1px 0 0 #d0def4' }}>
             <tr>
-              {canEdit && !editingColumns && <th className="w-6" />}
+              {selectMode && <th className="w-8 px-2"><input type="checkbox" checked={selectedTCIds.size === items.length && items.length > 0} onChange={toggleAllTCs} className="accent-arista-500" /></th>}
+              {canEdit && !editingColumns && !selectMode && <th className="w-6" />}
               {columns.map((col, idx) => {
                 const w = activeWidths[col.key];
                 const thStyle = w ? { width: w, minWidth: MIN_COL_WIDTH } : { minWidth: MIN_COL_WIDTH };
@@ -675,7 +767,7 @@ export default function TCTable({ section }) {
           </thead>
           <tbody className="divide-y divide-gray-100">
             {items.map(tc => (
-              <DraggableRow key={tc.id} tc={tc} columns={columns} colWidths={activeWidths} onSelect={selectTC} editingColumns={editingColumns} section={section} />
+              <DraggableRow key={tc.id} tc={tc} columns={columns} colWidths={activeWidths} onSelect={selectTC} editingColumns={editingColumns} section={section} selectMode={selectMode} checked={selectedTCIds.has(tc.id)} onToggle={toggleTCSelect} />
             ))}
           </tbody>
         </table>

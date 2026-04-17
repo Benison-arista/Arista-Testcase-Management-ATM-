@@ -1,6 +1,34 @@
+import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Tag, Play, Bug, AlertTriangle } from 'lucide-react';
 import useReleaseStore from '../../stores/useReleaseStore';
+
+function ColHandle({ colKey, onResize }) {
+  const handleMouseDown = useCallback((e) => {
+    e.preventDefault(); e.stopPropagation();
+    let lastX = e.clientX;
+    const onMove = (e) => { const d = e.clientX - lastX; lastX = e.clientX; if (d !== 0) onResize(colKey, d); };
+    const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); document.body.style.cursor = ''; document.body.style.userSelect = ''; };
+    document.body.style.cursor = 'col-resize'; document.body.style.userSelect = 'none';
+    document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
+  }, [colKey, onResize]);
+  return (
+    <div onMouseDown={handleMouseDown} className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize z-10" onClick={e => e.stopPropagation()}>
+      <div className="absolute right-0 top-0 bottom-0 w-px transition-colors" style={{ background: '#b0c4de' }}
+        onMouseEnter={e => { e.currentTarget.style.background = '#3d8bfd'; e.currentTarget.style.width = '3px'; }}
+        onMouseLeave={e => { e.currentTarget.style.background = '#b0c4de'; e.currentTarget.style.width = '1px'; }}
+      />
+    </div>
+  );
+}
+
+function useResizableCols(defaults) {
+  const [widths, setWidths] = useState(defaults);
+  const resize = useCallback((key, delta) => {
+    setWidths(prev => ({ ...prev, [key]: Math.max(40, (prev[key] || 60) + delta) }));
+  }, []);
+  return [widths, resize];
+}
 
 const STATUS_COLORS = {
   requested: '#9ca3af', committed: '#3b82f6', in_progress: '#f59e0b',
@@ -16,29 +44,29 @@ const PRIORITY_STYLE = {
 };
 const RUN_STATUS_COLORS = { pass: '#22c55e', fail: '#ef4444', blocked: '#f59e0b', pending: '#d1d5db' };
 
-function DonutChart({ segments, total, size = 130, label }) {
-  const radius = 48;
+function DonutChart({ segments, total, size = 200, label, centerText }) {
+  const radius = 72;
   const circumference = 2 * Math.PI * radius;
   if (total === 0) {
     return (
-      <svg width={size} height={size} viewBox="0 0 130 130">
-        <circle cx="65" cy="65" r={radius} fill="none" stroke="#e5e7eb" strokeWidth="14" />
-        <text x="65" y="60" textAnchor="middle" dominantBaseline="central" style={{ fontSize: 20, fontWeight: 700, fill: '#9ca3af' }}>0</text>
-        <text x="65" y="78" textAnchor="middle" style={{ fontSize: 10, fill: '#9ca3af' }}>{label}</text>
+      <svg width={size} height={size} viewBox="0 0 200 200">
+        <circle cx="100" cy="100" r={radius} fill="none" stroke="#e5e7eb" strokeWidth="18" />
+        <text x="100" y="92" textAnchor="middle" dominantBaseline="central" style={{ fontSize: 28, fontWeight: 700, fill: '#9ca3af' }}>0</text>
+        <text x="100" y="116" textAnchor="middle" style={{ fontSize: 12, fill: '#9ca3af' }}>{label}</text>
       </svg>
     );
   }
   let offset = 0;
   return (
-    <svg width={size} height={size} viewBox="0 0 130 130">
+    <svg width={size} height={size} viewBox="0 0 200 200">
       {segments.filter(s => s.value > 0).map((seg, i) => {
         const dash = (seg.value / total) * circumference;
         const dashOff = -offset;
         offset += dash;
-        return <circle key={i} cx="65" cy="65" r={radius} fill="none" stroke={seg.color} strokeWidth="14" strokeDasharray={`${dash} ${circumference - dash}`} strokeDashoffset={dashOff} transform="rotate(-90 65 65)" />;
+        return <circle key={i} cx="100" cy="100" r={radius} fill="none" stroke={seg.color} strokeWidth="18" strokeDasharray={`${dash} ${circumference - dash}`} strokeDashoffset={dashOff} transform="rotate(-90 100 100)" />;
       })}
-      <text x="65" y="60" textAnchor="middle" dominantBaseline="central" style={{ fontSize: 22, fontWeight: 700, fill: '#0e2e5b' }}>{total}</text>
-      <text x="65" y="78" textAnchor="middle" style={{ fontSize: 10, fill: '#6b7280' }}>{label}</text>
+      <text x="100" y="90" textAnchor="middle" dominantBaseline="central" style={{ fontSize: 30, fontWeight: 700, fill: '#0e2e5b' }}>{centerText || total}</text>
+      <text x="100" y="116" textAnchor="middle" style={{ fontSize: 12, fill: '#6b7280' }}>{label}</text>
     </svg>
   );
 }
@@ -46,11 +74,24 @@ function DonutChart({ segments, total, size = 130, label }) {
 function rfeId(id) { return 'RFE-' + String(id).padStart(4, '0'); }
 function runId(source, id) { return source === 'feature' ? 'TR-F' + String(id).padStart(4, '0') : 'TR-' + String(id).padStart(4, '0'); }
 
+function StatCard({ value, label, color, bg, size = 'md' }) {
+  const textSize = size === 'lg' ? 'text-3xl' : size === 'sm' ? 'text-lg' : 'text-2xl';
+  const padding = size === 'lg' ? 'p-4' : size === 'sm' ? 'p-2' : 'p-3';
+  const labelSize = size === 'lg' ? 'text-sm' : 'text-xs';
+  return (
+    <div className={`rounded-lg ${padding} text-center`} style={{ background: bg || '#f0f5fc' }}>
+      <p className={`${textSize} font-bold`} style={{ color: color || '#0e2e5b' }}>{value}</p>
+      <p className={`${labelSize} text-gray-500 mt-0.5`}>{label}</p>
+    </div>
+  );
+}
+
 export default function ReleaseDashboard() {
   const navigate = useNavigate();
   const { selectedReleaseId, features, summary, testRuns, tree } = useReleaseStore();
+  const [fCols, resizeFCol] = useResizableCols({ id: 80, name: 250, status: 100, pri: 60, dev: 100, qa: 100 });
+  const [trCols, resizeTrCol] = useResizableCols({ id: 90, name: 200, type: 70, total: 50, progress: 130, pass: 50, fail: 50, blocked: 55, pending: 55 });
 
-  // Find release node
   function findRelease(nodes) {
     for (const n of nodes) {
       if (n.id === selectedReleaseId) return n;
@@ -61,13 +102,12 @@ export default function ReleaseDashboard() {
   }
   const release = findRelease(tree);
 
-  // Feature status segments for donut
+  // Feature status segments
   const featureSegments = Object.entries(STATUS_COLORS).map(([status, color]) => ({
-    value: features.filter(f => f.status === status).length,
-    color,
-    label: STATUS_LABELS[status],
+    value: features.filter(f => f.status === status).length, color, label: STATUS_LABELS[status],
   }));
   const featureTotal = features.length;
+  const featuresCompleted = features.filter(f => f.status === 'completed').length;
 
   // Test run aggregate stats
   const totalTCs = testRuns.reduce((s, t) => s + (t.total || 0), 0);
@@ -75,6 +115,10 @@ export default function ReleaseDashboard() {
   const totalFail = testRuns.reduce((s, t) => s + (t.fail || 0), 0);
   const totalBlocked = testRuns.reduce((s, t) => s + (t.blocked || 0), 0);
   const totalPending = testRuns.reduce((s, t) => s + (t.pending || 0), 0);
+  const totalExecuted = totalPass + totalFail + totalBlocked;
+  const executionPct = totalTCs > 0 ? Math.round((totalExecuted / totalTCs) * 100) : 0;
+  const passPct = totalTCs > 0 ? Math.round((totalPass / totalTCs) * 100) : 0;
+  const failPct = totalTCs > 0 ? Math.round((totalFail / totalTCs) * 100) : 0;
   const runSegments = [
     { value: totalPass, color: RUN_STATUS_COLORS.pass },
     { value: totalFail, color: RUN_STATUS_COLORS.fail },
@@ -98,51 +142,55 @@ export default function ReleaseDashboard() {
         </div>
       </div>
 
-      {/* Graphical Overview */}
-      <div className="px-6 py-5 shrink-0" style={{ borderBottom: '1px solid #d0def4' }}>
-        <h2 className="text-xs font-bold uppercase tracking-wide mb-4" style={{ color: '#0e2e5b' }}>Overview</h2>
-        <div className="flex items-start gap-8 flex-wrap">
-          {/* Feature status donut */}
-          <div className="flex flex-col items-center">
-            <DonutChart segments={featureSegments} total={featureTotal} label="Features" />
-            <div className="flex flex-wrap gap-x-3 gap-y-1 mt-3 justify-center">
+      {/* Feature Overview — large */}
+      <div className="px-6 py-6 shrink-0" style={{ borderBottom: '1px solid #d0def4' }}>
+        <h2 className="text-sm font-bold uppercase tracking-wide mb-5" style={{ color: '#0e2e5b' }}>Feature Status</h2>
+        <div className="flex items-start gap-10 flex-wrap">
+          <DonutChart segments={featureSegments} total={featureTotal} label="Features" centerText={featuresCompleted + '/' + featureTotal} size={260} />
+          <div className="flex-1 min-w-[300px]">
+            <p className="text-sm text-gray-600 mb-4">{featuresCompleted} of {featureTotal} features completed</p>
+            {/* Feature stat cards — large */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+              <StatCard value={featureTotal} label="Total Features" size="lg" />
+              <StatCard value={featuresCompleted} label="Completed" color="#22c55e" bg="#f0fdf4" size="lg" />
+              <StatCard value={features.filter(f => f.status === 'in_progress' || f.status === 'in_testing').length} label="In Progress" color="#f59e0b" bg="#fffbeb" size="lg" />
+              <StatCard value={features.filter(f => f.status === 'deferred').length} label="Deferred" color="#ef4444" bg="#fef2f2" size="lg" />
+            </div>
+            {/* Feature status legend */}
+            <div className="flex flex-wrap gap-x-4 gap-y-2">
               {featureSegments.filter(s => s.value > 0).map(s => (
-                <div key={s.label} className="flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full" style={{ background: s.color }} />
-                  <span className="text-[10px] text-gray-500">{s.label}: {s.value}</span>
+                <div key={s.label} className="flex items-center gap-1.5">
+                  <span className="w-3 h-3 rounded-full" style={{ background: s.color }} />
+                  <span className="text-sm text-gray-600">{s.label}: <strong>{s.value}</strong></span>
                 </div>
               ))}
             </div>
           </div>
+        </div>
+      </div>
 
-          {/* Test execution donut */}
-          <div className="flex flex-col items-center">
-            <DonutChart segments={runSegments} total={totalTCs} label="Test Cases" />
-            <div className="flex gap-3 mt-3">
-              <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full" style={{ background: '#22c55e' }} /><span className="text-[10px] text-gray-500">Pass: {totalPass}</span></div>
-              <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full" style={{ background: '#ef4444' }} /><span className="text-[10px] text-gray-500">Fail: {totalFail}</span></div>
-              <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full" style={{ background: '#f59e0b' }} /><span className="text-[10px] text-gray-500">Blocked: {totalBlocked}</span></div>
-              <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full" style={{ background: '#d1d5db' }} /><span className="text-[10px] text-gray-500">Pending: {totalPending}</span></div>
+      {/* Test Execution Overview — smaller, below features */}
+      <div className="px-6 py-5 shrink-0" style={{ borderBottom: '1px solid #d0def4' }}>
+        <h2 className="text-xs font-bold uppercase tracking-wide mb-4" style={{ color: '#0e2e5b' }}>Test Execution</h2>
+        <div className="flex items-start gap-8 flex-wrap">
+          <DonutChart segments={runSegments} total={totalTCs} label="Test Cases" centerText={executionPct + '%'} size={200} />
+          <div className="flex-1 min-w-[280px]">
+            <p className="text-xs text-gray-500 mb-3">{totalExecuted} of {totalTCs} test cases executed across {testRuns.length} test runs</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
+              <StatCard value={totalTCs} label="Total TCs" size="sm" />
+              <StatCard value={totalPass} label="Passed" color="#22c55e" bg="#f0fdf4" size="sm" />
+              <StatCard value={totalFail} label="Failed" color="#ef4444" bg="#fef2f2" size="sm" />
+              <StatCard value={totalBlocked} label="Blocked" color="#f59e0b" bg="#fffbeb" size="sm" />
+              <StatCard value={totalPending} label="Pending" color="#6b7280" bg="#f9fafb" size="sm" />
+              <StatCard value={passPct + '%'} label="Pass Rate" color={passPct >= 80 ? '#22c55e' : passPct >= 50 ? '#f59e0b' : '#ef4444'} bg={passPct >= 80 ? '#f0fdf4' : passPct >= 50 ? '#fffbeb' : '#fef2f2'} size="sm" />
+              <StatCard value={executionPct + '%'} label="Execution" color="#1a56b0" bg="#e8f0fe" size="sm" />
+              <StatCard value={totalTCs - totalExecuted} label="Remaining" color="#6b7280" bg="#f9fafb" size="sm" />
             </div>
-          </div>
-
-          {/* Summary cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 flex-1 min-w-[280px]">
-            <div className="rounded-lg p-3 text-center" style={{ background: '#f0f5fc' }}>
-              <p className="text-2xl font-bold" style={{ color: '#0e2e5b' }}>{featureTotal}</p>
-              <p className="text-xs text-gray-500">Features</p>
-            </div>
-            <div className="rounded-lg p-3 text-center" style={{ background: '#f0f5fc' }}>
-              <p className="text-2xl font-bold" style={{ color: '#0e2e5b' }}>{testRuns.length}</p>
-              <p className="text-xs text-gray-500">Test Runs</p>
-            </div>
-            <div className="rounded-lg p-3 text-center" style={{ background: '#f0f5fc' }}>
-              <p className="text-2xl font-bold" style={{ color: '#0e2e5b' }}>{totalTCs}</p>
-              <p className="text-xs text-gray-500">Total TCs</p>
-            </div>
-            <div className="rounded-lg p-3 text-center" style={{ background: totalTCs > 0 ? '#f0fdf4' : '#f0f5fc' }}>
-              <p className="text-2xl font-bold" style={{ color: totalTCs > 0 ? '#22c55e' : '#0e2e5b' }}>{totalTCs > 0 ? Math.round((totalPass / totalTCs) * 100) : 0}%</p>
-              <p className="text-xs text-gray-500">Pass Rate</p>
+            <div className="flex gap-4">
+              <div className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full" style={{ background: '#22c55e' }} /><span className="text-xs text-gray-500">Pass: {totalPass}</span></div>
+              <div className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full" style={{ background: '#ef4444' }} /><span className="text-xs text-gray-500">Fail: {totalFail}</span></div>
+              <div className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full" style={{ background: '#f59e0b' }} /><span className="text-xs text-gray-500">Blocked: {totalBlocked}</span></div>
+              <div className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full" style={{ background: '#d1d5db' }} /><span className="text-xs text-gray-500">Pending: {totalPending}</span></div>
             </div>
           </div>
         </div>
@@ -157,15 +205,15 @@ export default function ReleaseDashboard() {
           <p className="text-xs text-gray-400 py-2">No features added yet.</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm border-collapse">
+            <table className="text-sm border-collapse" style={{ tableLayout: 'fixed', minWidth: '100%' }}>
               <thead>
                 <tr style={{ background: '#e8f0fe' }}>
-                  <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase">ID</th>
-                  <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase">Feature</th>
-                  <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase">Status</th>
-                  <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase">Priority</th>
-                  <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase">Dev</th>
-                  <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase">QA</th>
+                  <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase relative" style={{ width: fCols.id }}>ID<ColHandle colKey="id" onResize={resizeFCol} /></th>
+                  <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase relative" style={{ width: fCols.name }}>Feature<ColHandle colKey="name" onResize={resizeFCol} /></th>
+                  <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase relative" style={{ width: fCols.status }}>Status<ColHandle colKey="status" onResize={resizeFCol} /></th>
+                  <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase relative" style={{ width: fCols.pri }}>Priority<ColHandle colKey="pri" onResize={resizeFCol} /></th>
+                  <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase relative" style={{ width: fCols.dev }}>Dev<ColHandle colKey="dev" onResize={resizeFCol} /></th>
+                  <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase relative" style={{ width: fCols.qa }}>QA<ColHandle colKey="qa" onResize={resizeFCol} /></th>
                 </tr>
               </thead>
               <tbody>
@@ -198,16 +246,18 @@ export default function ReleaseDashboard() {
           <p className="text-xs text-gray-400 py-2">No test runs yet. Create test runs in the Test Runs tab.</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm border-collapse">
+            <table className="text-sm border-collapse" style={{ tableLayout: 'fixed', minWidth: '100%' }}>
               <thead>
                 <tr style={{ background: '#e8f0fe' }}>
-                  <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase">ID</th>
-                  <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase">Name</th>
-                  <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase">Type</th>
-                  <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase">Total</th>
-                  <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase">Progress</th>
-                  <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase">Pass</th>
-                  <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase">Fail</th>
+                  <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase relative" style={{ width: trCols.id }}>ID<ColHandle colKey="id" onResize={resizeTrCol} /></th>
+                  <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase relative" style={{ width: trCols.name }}>Name<ColHandle colKey="name" onResize={resizeTrCol} /></th>
+                  <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase relative" style={{ width: trCols.type }}>Type<ColHandle colKey="type" onResize={resizeTrCol} /></th>
+                  <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase relative" style={{ width: trCols.total }}>Total<ColHandle colKey="total" onResize={resizeTrCol} /></th>
+                  <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase relative" style={{ width: trCols.progress }}>Progress<ColHandle colKey="progress" onResize={resizeTrCol} /></th>
+                  <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase relative" style={{ width: trCols.pass }}>Pass<ColHandle colKey="pass" onResize={resizeTrCol} /></th>
+                  <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase relative" style={{ width: trCols.fail }}>Fail<ColHandle colKey="fail" onResize={resizeTrCol} /></th>
+                  <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase relative" style={{ width: trCols.blocked }}>Blocked<ColHandle colKey="blocked" onResize={resizeTrCol} /></th>
+                  <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase relative" style={{ width: trCols.pending }}>Pending<ColHandle colKey="pending" onResize={resizeTrCol} /></th>
                 </tr>
               </thead>
               <tbody>
@@ -228,7 +278,7 @@ export default function ReleaseDashboard() {
                       <td className="px-3 py-2 text-gray-600">{tr.total}</td>
                       <td className="px-3 py-2">
                         <div className="flex items-center gap-2">
-                          <div className="flex h-1.5 w-16 rounded-full overflow-hidden bg-gray-200">
+                          <div className="flex h-2 w-20 rounded-full overflow-hidden bg-gray-200">
                             {tr.pass > 0 && <div style={{ width: (tr.pass / (tr.total || 1) * 100) + '%', background: '#22c55e' }} />}
                             {tr.fail > 0 && <div style={{ width: (tr.fail / (tr.total || 1) * 100) + '%', background: '#ef4444' }} />}
                             {tr.blocked > 0 && <div style={{ width: (tr.blocked / (tr.total || 1) * 100) + '%', background: '#f59e0b' }} />}
@@ -238,6 +288,8 @@ export default function ReleaseDashboard() {
                       </td>
                       <td className="px-3 py-2"><span className="text-xs font-medium text-green-600">{tr.pass}</span></td>
                       <td className="px-3 py-2"><span className="text-xs font-medium text-red-600">{tr.fail}</span></td>
+                      <td className="px-3 py-2"><span className="text-xs font-medium text-orange-500">{tr.blocked}</span></td>
+                      <td className="px-3 py-2"><span className="text-xs text-gray-400">{tr.pending}</span></td>
                     </tr>
                   );
                 })}

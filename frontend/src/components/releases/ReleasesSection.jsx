@@ -10,17 +10,26 @@ export default function ReleasesSection() {
   const { releaseId: urlReleaseId, featureId: urlFeatureId } = useParams();
   const { selectedReleaseId, selectRelease, selectedFeature, fetchFeature } = useReleaseStore();
 
+  const { clearFeature } = useReleaseStore();
+
   // Sync URL params to state
   useEffect(() => {
     const rid = urlReleaseId ? parseInt(urlReleaseId, 10) : null;
     const fid = urlFeatureId ? parseInt(urlFeatureId, 10) : null;
 
-    if (rid && rid !== selectedReleaseId) {
-      selectRelease(rid).then(() => {
-        if (fid) fetchFeature(rid, fid);
-      });
-    } else if (rid && fid && (!selectedFeature || selectedFeature.id !== fid)) {
-      fetchFeature(rid, fid);
+    if (rid && fid) {
+      // Feature URL — load it
+      if (!selectedFeature || selectedFeature.id !== fid) {
+        if (rid !== selectedReleaseId) selectRelease(rid).then(() => fetchFeature(rid, fid));
+        else fetchFeature(rid, fid);
+      }
+    } else if (rid) {
+      // Release URL (no feature) — clear any selected feature, load release
+      if (selectedFeature) clearFeature();
+      if (rid !== selectedReleaseId) selectRelease(rid);
+    } else {
+      // No release selected — clear everything
+      if (selectedFeature) clearFeature();
     }
   }, [urlReleaseId, urlFeatureId]);
 
