@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import useAppStore from './stores/useAppStore';
 import UserPrompt from './components/layout/UserPrompt';
 import TopBar from './components/layout/TopBar';
+import HomeSection from './components/layout/HomeSection';
 import TCSection from './components/layout/TCSection';
 import RunsSection from './components/layout/RunsSection';
 import ReleasesSection from './components/releases/ReleasesSection';
@@ -16,6 +17,7 @@ export default function App() {
       <TopBar />
       <div className="flex flex-1 overflow-hidden">
         <Routes>
+          <Route path="/home" element={<HomeSection />} />
           <Route path="/velocloud" element={<TCSection section="velocloud" />} />
           <Route path="/velocloud/folder/:folderId" element={<TCSection section="velocloud" />} />
           <Route path="/velocloud/folder/:folderId/tc/:tcId" element={<TCSection section="velocloud" />} />
@@ -31,7 +33,7 @@ export default function App() {
           <Route path="/releases" element={<ReleasesSection />} />
           <Route path="/releases/:releaseId" element={<ReleasesSection />} />
           <Route path="/releases/:releaseId/feature/:featureId" element={<ReleasesSection />} />
-          <Route path="*" element={<Navigate to="/velocloud" replace />} />
+          <Route path="*" element={<Navigate to="/home" replace />} />
         </Routes>
       </div>
     </div>

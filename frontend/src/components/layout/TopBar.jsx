@@ -34,7 +34,7 @@ export default function TopBar() {
 
   // Derive active tab from URL path
   const path = location.pathname;
-  const activeTab = path.startsWith('/arista') ? 'arista' : path.startsWith('/runs') ? 'runs' : path.startsWith('/releases') ? 'releases' : 'velocloud';
+  const activeTab = path === '/home' ? 'home' : path.startsWith('/arista') ? 'arista' : path.startsWith('/runs') ? 'runs' : path.startsWith('/releases') ? 'releases' : 'velocloud';
 
   const handleSearch = useCallback((e) => {
     const q = e.target.value;
@@ -67,7 +67,7 @@ export default function TopBar() {
       className="flex items-center gap-4 px-5 h-14 shrink-0 shadow-lg"
     >
       {/* Brand logo */}
-      <a onClick={() => navigate('/velocloud')} className="shrink-0 flex items-center rounded-md overflow-hidden cursor-pointer" title="ATM - Arista Testcase Management" style={{ background: '#fff', padding: '2px 6px' }}>
+      <a onClick={() => navigate('/home')} className="shrink-0 flex items-center rounded-md overflow-hidden cursor-pointer" title="ATM - Arista Testcase Management" style={{ background: '#fff', padding: '2px 6px' }}>
         <img src={atmLogo} alt="ATM" className="h-9" />
       </a>
 
@@ -93,7 +93,7 @@ export default function TopBar() {
       </nav>
 
       {/* Search */}
-      {activeTab !== 'runs' && (
+      {activeTab !== 'runs' && activeTab !== 'home' && activeTab !== 'releases' && (
         <div className="flex-1 max-w-md relative ml-4">
           <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-blue-200" />
           <input

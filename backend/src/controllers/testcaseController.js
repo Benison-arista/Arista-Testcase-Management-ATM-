@@ -231,4 +231,18 @@ async function getHistory(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { listTestcases, getTestcase, searchTestcases, createTestcase, updateTestcase, deleteTestcase, importTestcases, getHistory };
+async function getTestcaseCounts(req, res, next) {
+  try {
+    const { rows } = await pool.query(
+      `SELECT section,
+         COUNT(DISTINCT COALESCE(data->>'title', data->>'description', id::text))::int AS tc_count,
+         COUNT(DISTINCT folder_id)::int AS folder_count
+       FROM testcases GROUP BY section`
+    );
+    const result = {};
+    rows.forEach(r => { result[r.section] = { tc_count: r.tc_count, folder_count: r.folder_count }; });
+    res.json(result);
+  } catch (err) { next(err); }
+}
+
+module.exports = { listTestcases, getTestcase, searchTestcases, createTestcase, updateTestcase, deleteTestcase, importTestcases, getHistory, getTestcaseCounts };

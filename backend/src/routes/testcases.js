@@ -3,10 +3,11 @@ const authorize = require('../middleware/authorize');
 const {
   listTestcases, getTestcase, searchTestcases,
   createTestcase, updateTestcase, deleteTestcase,
-  importTestcases, getHistory,
+  importTestcases, getHistory, getTestcaseCounts,
 } = require('../controllers/testcaseController');
 
 // Read — any authenticated user
+router.get('/counts', getTestcaseCounts);
 router.get('/search', searchTestcases);
 router.get('/', listTestcases);
 router.get('/:id/history', getHistory);

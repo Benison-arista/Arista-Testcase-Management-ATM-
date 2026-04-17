@@ -8,3 +8,4 @@ export const updateTestcase  = (id, body) => client.put(`/testcases/${id}`, body
 export const deleteTestcase  = (id)     => client.delete(`/testcases/${id}`);
 export const importTestcases = (body)   => client.post('/testcases/import', body).then(r => r.data);
 export const getHistory      = (id, params) => client.get(`/testcases/${id}/history`, { params }).then(r => r.data);
+export const getTestcaseCounts = ()         => client.get('/testcases/counts').then(r => r.data);
