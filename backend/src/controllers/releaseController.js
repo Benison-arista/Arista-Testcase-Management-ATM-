@@ -119,8 +119,17 @@ async function updateFeature(req, res, next) {
 }
 
 async function deleteFeature(req, res, next) {
+  const { id } = req.params;
   try {
-    await pool.query('DELETE FROM features WHERE id = $1', [req.params.id]);
+    // Check if the feature has any test runs linked to it
+    const { rows: [{ count }] } = await pool.query(
+      'SELECT COUNT(*)::int AS count FROM test_runs WHERE feature_id = $1',
+      [id]
+    );
+    if (count > 0) {
+      return res.status(400).json({ error: 'Cannot delete this feature — it has ' + count + ' test case(s) in its test run. Remove them first.' });
+    }
+    await pool.query('DELETE FROM features WHERE id = $1', [id]);
     res.status(204).send();
   } catch (err) { next(err); }
 }
