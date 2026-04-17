@@ -43,6 +43,7 @@ const PRIORITY_STYLE = {
   P2: { bg: '#fef9c3', color: '#854d0e' }, P3: { bg: '#f3f4f6', color: '#374151' },
 };
 const RUN_STATUS_COLORS = { pass: '#22c55e', fail: '#ef4444', blocked: '#f59e0b', pending: '#d1d5db' };
+const RELEASE_STATUS_LABELS = { planning: 'Planning', active: 'Active', released: 'Released', archived: 'Archived' };
 
 function DonutChart({ segments, total, size = 200, label, centerText }) {
   const radius = 72;
@@ -134,7 +135,7 @@ export default function ReleaseDashboard() {
         <div className="flex items-center gap-3 mt-1">
           {release?.status && (
             <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: release.status === 'active' ? '#dbeafe' : release.status === 'released' ? '#d1fae5' : '#f3f4f6', color: release.status === 'active' ? '#1e40af' : release.status === 'released' ? '#065f46' : '#374151' }}>
-              {release.status}
+              {RELEASE_STATUS_LABELS[release.status] || release.status}
             </span>
           )}
           {release?.target_date && <span className="text-xs text-gray-400">Target: {new Date(release.target_date).toLocaleDateString()}</span>}

@@ -44,6 +44,7 @@ function formatDate(d) {
 }
 
 const RUN_STATUS_COLORS = { pass: '#22c55e', fail: '#ef4444', blocked: '#f59e0b', pending: '#d1d5db' };
+const RUN_STATUS_LABELS = { pending: 'Pending', pass: 'Pass', fail: 'Failed', blocked: 'Blocked' };
 const STATUS_ICONS = {
   pass: <CheckCircle size={14} className="text-green-500" />,
   fail: <XCircle size={14} className="text-red-500" />,
@@ -253,7 +254,7 @@ export default function FeatureDetail() {
                           <td className="px-3 py-2">
                             <span className="inline-flex items-center gap-1">
                               {STATUS_ICONS[item.status]}
-                              <span className="text-xs font-medium capitalize">{item.status}</span>
+                              <span className="text-xs font-medium">{RUN_STATUS_LABELS[item.status] || item.status}</span>
                             </span>
                           </td>
                           <td className="px-3 py-2 text-xs text-gray-600">{item.version || '\u2014'}</td>

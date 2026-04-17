@@ -98,11 +98,13 @@ function DonutChart({ pass, fail, blocked, pending, total, size = 200 }) {
 }
 
 // --- Status Select ---
+const STATUS_LABELS = { pending: 'Pending', pass: 'Pass', fail: 'Failed', blocked: 'Blocked' };
+
 function StatusSelect({ value, onChange }) {
   const statuses = ['pending', 'pass', 'fail', 'blocked'];
   return (
     <select value={value || 'pending'} onChange={e => onChange(e.target.value)} className="border border-gray-200 rounded px-1.5 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-arista-400">
-      {statuses.map(s => <option key={s} value={s}>{s}</option>)}
+      {statuses.map(s => <option key={s} value={s}>{STATUS_LABELS[s]}</option>)}
     </select>
   );
 }
@@ -550,7 +552,7 @@ function TestRunDetail() {
               background: s === 'pass' ? '#d1fae5' : s === 'fail' ? '#fee2e2' : s === 'blocked' ? '#fef3c7' : '#f3f4f6',
               color: s === 'pass' ? '#065f46' : s === 'fail' ? '#991b1b' : s === 'blocked' ? '#92400e' : '#374151',
               borderColor: s === 'pass' ? '#6ee7b7' : s === 'fail' ? '#fca5a5' : s === 'blocked' ? '#fcd34d' : '#d1d5db',
-            }}>{s}</button>
+            }}>{STATUS_LABELS[s]}</button>
           ))}
         </div>
       )}
