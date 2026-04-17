@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express = require('express');
+const path = require('path');
 const cors = require('cors');
 const { runMigrations } = require('./db');
 const auth = require('./middleware/auth');
@@ -23,6 +24,11 @@ app.use('/api/folders', auth, require('./routes/folders'));
 app.use('/api/testcases', auth, require('./routes/testcases'));
 app.use('/api/runs', auth, require('./routes/runs'));
 app.use('/api/releases', auth, require('./routes/releases'));
+
+// Serve React frontend in production
+const publicDir = path.join(__dirname, '..', 'public');
+app.use(express.static(publicDir));
+app.get('*', (req, res) => res.sendFile(path.join(publicDir, 'index.html')));
 
 app.use(errorHandler);
 
