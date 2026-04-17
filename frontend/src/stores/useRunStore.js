@@ -140,8 +140,15 @@ const useRunStore = create((set, get) => ({
 
   updateRunItem: async (id, body) => {
     await api.updateRunItem(id, body);
-    const { selectedReleaseId, selectedFeatureId } = get();
-    await get().selectRelease(selectedReleaseId, selectedFeatureId);
+    const { selectedReleaseId, selectedFeatureId, selectedRunFolderId, page, limit } = get();
+    // Re-fetch current view's items without resetting the view
+    if (selectedRunFolderId) {
+      const res = await api.getRunItems(selectedRunFolderId, { page, limit });
+      set({ runItems: res.data || res, total: res.pagination?.total || 0, totalPages: res.pagination?.totalPages || 0 });
+    } else if (selectedFeatureId) {
+      const res = await api.getRunsByRelease({ release_id: selectedReleaseId, feature_id: selectedFeatureId, page, limit });
+      set({ runItems: res.data || res, total: res.pagination?.total || 0, totalPages: res.pagination?.totalPages || 0 });
+    }
   },
 
   deleteRunItem: async (id) => {
