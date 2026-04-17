@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useDroppable, useDraggable } from '@dnd-kit/core';
 import { ChevronRight, ChevronDown, Folder, FolderOpen, Plus, Trash2, GripVertical } from 'lucide-react';
 import useFolderStore from '../../stores/useFolderStore';
@@ -7,6 +8,7 @@ import useSearchStore from '../../stores/useSearchStore';
 import useAppStore from '../../stores/useAppStore';
 
 function FolderNode({ node, section, depth = 0 }) {
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const { selectedFolderId, selectFolder, deleteFolder, createFolder } = useFolderStore();
   const { fetchList } = useTCStore();
@@ -30,14 +32,13 @@ function FolderNode({ node, section, depth = 0 }) {
   });
 
   const handleSelect = () => {
-    // Clear any active search and reset the search input
     const { mode, clearSearch } = useSearchStore.getState();
     if (mode !== 'idle') {
       clearSearch();
-      // Clear the search input in the TopBar
       const searchInput = document.querySelector('header input[placeholder*="Search"]');
       if (searchInput) searchInput.value = '';
     }
+    navigate('/' + section + '/folder/' + node.id);
     selectFolder(node.id);
     fetchList({ folder_id: node.id, section });
     setOpen(true);

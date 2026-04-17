@@ -1,4 +1,5 @@
 import { FileText, Loader, GripVertical, Folder, ChevronRight, FolderOpen } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useDraggable } from '@dnd-kit/core';
 import useTCStore from '../../stores/useTCStore';
 import useSearchStore from '../../stores/useSearchStore';
@@ -13,6 +14,7 @@ function badge(priority) {
 }
 
 function SubFolderItem({ folder, section }) {
+  const navigate = useNavigate();
   const { selectFolder } = useFolderStore();
   const { fetchList } = useTCStore();
   const { mode, clearSearch } = useSearchStore();
@@ -23,6 +25,7 @@ function SubFolderItem({ folder, section }) {
       const searchInput = document.querySelector('header input[placeholder*="Search"]');
       if (searchInput) searchInput.value = '';
     }
+    navigate('/' + section + '/folder/' + folder.id);
     selectFolder(folder.id);
     fetchList({ folder_id: folder.id, section });
   };
@@ -40,8 +43,9 @@ function SubFolderItem({ folder, section }) {
 }
 
 function DraggableTCItem({ tc, idKey, isActive, onSelect, isSearchResult, section }) {
+  const navigate = useNavigate();
   const canEdit = useAppStore(s => s.isEditor());
-  const { selectFolder } = useFolderStore();
+  const { selectFolder, selectedFolderId } = useFolderStore();
   const { fetchList } = useTCStore();
   const { clearSearch } = useSearchStore();
   const id = tc.data[idKey];
@@ -60,14 +64,23 @@ function DraggableTCItem({ tc, idKey, isActive, onSelect, isSearchResult, sectio
     clearSearch();
     const searchInput = document.querySelector('header input[placeholder*="Search"]');
     if (searchInput) searchInput.value = '';
+    navigate('/' + section + '/folder/' + tc.folder_id);
     selectFolder(tc.folder_id);
     fetchList({ folder_id: tc.folder_id, section });
+  };
+
+  const handleClick = () => {
+    onSelect(tc);
+    const fid = tc.folder_id || selectedFolderId;
+    if (fid) {
+      navigate('/' + section + '/folder/' + fid + '/tc/' + tc.id);
+    }
   };
 
   return (
     <div
       ref={setNodeRef}
-      onClick={() => onSelect(tc)}
+      onClick={handleClick}
       className={`px-4 py-3 cursor-pointer transition-colors ${isDragging ? 'opacity-40' : ''}`}
       style={isActive ? { background: '#dbeafe', borderLeft: '3px solid #1a56b0' } : {}}
       onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = '#e0eaf7'; }}

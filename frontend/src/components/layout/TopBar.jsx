@@ -1,4 +1,5 @@
 import { useRef, useCallback } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Search, X, LogOut, Shield } from 'lucide-react';
 import useAppStore from '../../stores/useAppStore';
 import useSearchStore from '../../stores/useSearchStore';
@@ -23,10 +24,16 @@ const ROLE_COLORS = {
 };
 
 export default function TopBar() {
-  const { activeTab, setActiveTab, user, logout } = useAppStore();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { user, logout } = useAppStore();
   const { query, search, clearSearch } = useSearchStore();
   const searchTimeout = useRef(null);
   const inputRef = useRef(null);
+
+  // Derive active tab from URL path
+  const path = location.pathname;
+  const activeTab = path.startsWith('/arista') ? 'arista' : path.startsWith('/runs') ? 'runs' : 'velocloud';
 
   const handleSearch = useCallback((e) => {
     const q = e.target.value;
@@ -45,6 +52,12 @@ export default function TopBar() {
     inputRef.current?.focus();
   }, [clearSearch]);
 
+  const handleTabClick = (key) => {
+    clearSearch();
+    if (inputRef.current) inputRef.current.value = '';
+    navigate('/' + key);
+  };
+
   const roleColor = ROLE_COLORS[user?.role] || ROLE_COLORS.viewer;
 
   return (
@@ -53,7 +66,7 @@ export default function TopBar() {
       className="flex items-center gap-4 px-5 h-14 shrink-0 shadow-lg"
     >
       {/* Brand logo */}
-      <a href="/" className="shrink-0 flex items-center rounded-md overflow-hidden" title="ATM - Arista Testcase Management" style={{ background: '#fff', padding: '2px 6px' }}>
+      <a onClick={() => navigate('/velocloud')} className="shrink-0 flex items-center rounded-md overflow-hidden cursor-pointer" title="ATM - Arista Testcase Management" style={{ background: '#fff', padding: '2px 6px' }}>
         <img src={atmLogo} alt="ATM" className="h-9" />
       </a>
 
@@ -62,7 +75,7 @@ export default function TopBar() {
         {TABS.map(t => (
           <button
             key={t.key}
-            onClick={() => { setActiveTab(t.key); clearSearch(); if (inputRef.current) inputRef.current.value = ''; }}
+            onClick={() => handleTabClick(t.key)}
             style={activeTab === t.key
               ? { background: '#3d8bfd', color: '#fff' }
               : {}

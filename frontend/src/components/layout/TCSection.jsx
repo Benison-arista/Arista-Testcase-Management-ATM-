@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useParams } from 'react-router-dom';
 import { Plus, Upload } from 'lucide-react';
 import { DndContext, PointerSensor, useSensor, useSensors, DragOverlay } from '@dnd-kit/core';
 import FolderTree from '../folder/FolderTree';
@@ -66,13 +67,15 @@ function ResizeHandle({ onResize }) {
 }
 
 export default function TCSection({ section }) {
+  const { folderId: urlFolderId, tcId: urlTcId } = useParams();
   const canEdit = useAppStore(s => s.isEditor());
   const { mode } = useSearchStore();
-  const { selectedTC, list, fetchList, clearList, moveTC } = useTCStore();
-  const { selectedFolderId, moveFolder } = useFolderStore();
+  const { selectedTC, list, fetchList, clearList, moveTC, selectTC, fetchTC } = useTCStore();
+  const { selectedFolderId, selectFolder, moveFolder } = useFolderStore();
   const [showForm, setShowForm] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [activeDrag, setActiveDrag] = useState(null);
+  const initialSyncDone = useRef(false);
 
   const [paneWidths, setPaneWidths] = useState(loadWidths);
   const saveTimer = useRef(null);
@@ -101,7 +104,30 @@ export default function TCSection({ section }) {
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
 
-  useEffect(() => { clearList(); }, [section]);
+  // Clear list when switching sections
+  useEffect(() => {
+    clearList();
+    initialSyncDone.current = false;
+  }, [section]);
+
+  // Sync URL params to state on mount / URL change
+  useEffect(() => {
+    const fid = urlFolderId ? parseInt(urlFolderId, 10) : null;
+    const tid = urlTcId ? parseInt(urlTcId, 10) : null;
+
+    if (fid && fid !== selectedFolderId) {
+      selectFolder(fid);
+      fetchList({ folder_id: fid, section }).then(() => {
+        if (tid) fetchTC(tid);
+      });
+    } else if (fid && tid && (!selectedTC || selectedTC.id !== tid)) {
+      fetchTC(tid);
+    } else if (!fid && selectedFolderId && !initialSyncDone.current) {
+      // URL has no folder but state does — first load, clear
+      selectFolder(null);
+    }
+    initialSyncDone.current = true;
+  }, [urlFolderId, urlTcId, section]);
 
   const showList = mode !== 'idle' || selectedFolderId !== null || list.length > 0;
 

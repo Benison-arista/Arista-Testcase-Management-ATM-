@@ -1,6 +1,8 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Edit2, History, Trash2, X, Clock } from 'lucide-react';
 import useTCStore from '../../stores/useTCStore';
+import useFolderStore from '../../stores/useFolderStore';
 import useAppStore from '../../stores/useAppStore';
 import { getSchema } from '../../schemas';
 import TCForm from './TCForm';
@@ -211,7 +213,9 @@ function HistoryPanel({ history, section, onClose }) {
 
 // --- Main TC Detail ---
 export default function TCDetail({ section }) {
+  const navigate = useNavigate();
   const { selectedTC, deleteTC, fetchHistory, history, clearTC } = useTCStore();
+  const { selectedFolderId } = useFolderStore();
   const canEdit = useAppStore(s => s.isEditor());
   const [editing, setEditing] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
@@ -234,6 +238,8 @@ export default function TCDetail({ section }) {
   const handleDelete = async () => {
     if (!confirm('Delete this test case?')) return;
     await deleteTC(selectedTC.id);
+    if (selectedFolderId) navigate('/' + section + '/folder/' + selectedFolderId);
+    else navigate('/' + section);
   };
 
   const handleHistory = async () => {
@@ -266,7 +272,7 @@ export default function TCDetail({ section }) {
               </button>
             </>
           )}
-          <button onClick={clearTC} className="text-gray-400 hover:text-gray-600">
+          <button onClick={() => { clearTC(); if (selectedFolderId) navigate('/' + section + '/folder/' + selectedFolderId); else navigate('/' + section); }} className="text-gray-400 hover:text-gray-600">
             <X size={16} />
           </button>
         </div>

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { SlidersHorizontal, FileText, FolderOpen, GripVertical, ArrowLeft, ArrowRight, Pencil, Check, X, Filter } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useDraggable } from '@dnd-kit/core';
 import { DndContext as SortDndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
@@ -139,7 +140,9 @@ function SortablePickerItem({ field, isVisible, onToggle }) {
   );
 }
 
-function DraggableRow({ tc, columns, colWidths, onSelect, editingColumns }) {
+function DraggableRow({ tc, columns, colWidths, onSelect, editingColumns, section }) {
+  const navigate = useNavigate();
+  const { selectedFolderId } = useFolderStore();
   const canEdit = useAppStore(s => s.isEditor());
   const title = tc.data.title || tc.data.description || `TC #${tc.id}`;
 
@@ -152,7 +155,12 @@ function DraggableRow({ tc, columns, colWidths, onSelect, editingColumns }) {
   return (
     <tr
       ref={setNodeRef}
-      onClick={() => !editingColumns && onSelect(tc)}
+      onClick={() => {
+        if (editingColumns) return;
+        onSelect(tc);
+        const fid = tc.folder_id || selectedFolderId;
+        if (fid) navigate('/' + section + '/folder/' + fid + '/tc/' + tc.id);
+      }}
       className={`cursor-pointer transition-colors ${isDragging ? 'opacity-40' : ''}`}
       onMouseEnter={e => { e.currentTarget.style.background = '#e0eaf7'; }}
       onMouseLeave={e => { e.currentTarget.style.background = ''; }}
@@ -667,7 +675,7 @@ export default function TCTable({ section }) {
           </thead>
           <tbody className="divide-y divide-gray-100">
             {items.map(tc => (
-              <DraggableRow key={tc.id} tc={tc} columns={columns} colWidths={activeWidths} onSelect={selectTC} editingColumns={editingColumns} />
+              <DraggableRow key={tc.id} tc={tc} columns={columns} colWidths={activeWidths} onSelect={selectTC} editingColumns={editingColumns} section={section} />
             ))}
           </tbody>
         </table>
