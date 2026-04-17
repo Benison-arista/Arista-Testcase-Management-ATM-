@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import ReleaseTree from './ReleaseTree';
+import ReleaseDashboard from './ReleaseDashboard';
 import FeatureList from './FeatureList';
 import FeatureDetail from './FeatureDetail';
 import useReleaseStore from '../../stores/useReleaseStore';
@@ -23,6 +24,16 @@ export default function ReleasesSection() {
     }
   }, [urlReleaseId, urlFeatureId]);
 
+  // Determine what to show in the main panel
+  let mainContent;
+  if (selectedFeature) {
+    mainContent = <FeatureDetail />;
+  } else if (selectedReleaseId && !urlFeatureId) {
+    mainContent = <ReleaseDashboard />;
+  } else {
+    mainContent = <FeatureList />;
+  }
+
   return (
     <div className="flex flex-1 overflow-hidden">
       {/* Sidebar */}
@@ -32,11 +43,7 @@ export default function ReleasesSection() {
 
       {/* Main area */}
       <main className="flex-1 overflow-hidden flex flex-col bg-white min-w-0">
-        {selectedFeature ? (
-          <FeatureDetail />
-        ) : (
-          <FeatureList />
-        )}
+        {mainContent}
       </main>
     </div>
   );

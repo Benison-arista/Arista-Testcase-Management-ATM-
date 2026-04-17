@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import * as api from '../api/releases';
+import { getTestRunsByRelease } from '../api/runs';
 
 function buildTree(flat) {
   const map = {};
@@ -21,6 +22,7 @@ const useReleaseStore = create((set, get) => ({
   features: [],
   selectedFeature: null,
   summary: null,
+  testRuns: [], // manual + feature test runs for the dashboard
   page: 1,
   limit: 50,
   total: 0,
@@ -48,12 +50,19 @@ const useReleaseStore = create((set, get) => ({
       api.getFeatures(id, { page: 1, limit: get().limit }),
       api.getReleaseSummary(id),
     ]);
+    // Also fetch test runs for the dashboard
+    let testRuns = [];
+    try {
+      const { manualRuns, featureRuns } = await getTestRunsByRelease(id);
+      testRuns = [...featureRuns, ...manualRuns];
+    } catch {}
     set({
       features: res.data || res,
       total: res.pagination?.total || 0,
       totalPages: res.pagination?.totalPages || 0,
       page: res.pagination?.page || 1,
       summary,
+      testRuns,
     });
   },
 
