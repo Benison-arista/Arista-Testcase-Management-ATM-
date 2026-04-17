@@ -9,6 +9,7 @@ const TABS = [
   { key: 'velocloud', label: 'VeloCloud TCs' },
   { key: 'arista',    label: 'Arista TCs' },
   { key: 'runs',      label: 'Test Runs' },
+  { key: 'releases',  label: 'Releases' },
 ];
 
 const ROLE_LABEL = {
@@ -33,7 +34,7 @@ export default function TopBar() {
 
   // Derive active tab from URL path
   const path = location.pathname;
-  const activeTab = path.startsWith('/arista') ? 'arista' : path.startsWith('/runs') ? 'runs' : 'velocloud';
+  const activeTab = path.startsWith('/arista') ? 'arista' : path.startsWith('/runs') ? 'runs' : path.startsWith('/releases') ? 'releases' : 'velocloud';
 
   const handleSearch = useCallback((e) => {
     const q = e.target.value;

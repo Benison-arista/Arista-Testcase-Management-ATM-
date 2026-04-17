@@ -22,6 +22,7 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/folders', auth, require('./routes/folders'));
 app.use('/api/testcases', auth, require('./routes/testcases'));
 app.use('/api/runs', auth, require('./routes/runs'));
+app.use('/api/releases', auth, require('./routes/releases'));
 
 app.use(errorHandler);
 

@@ -4,12 +4,23 @@ const {
   getRunFolderTree, createRunFolder, deleteRunFolder,
   getRunItems, addRunItem, updateRunItem, deleteRunItem,
   getReport,
+  getReleasesWithFeatures, getRunsByRelease, addRunToRelease, getTCsByFolder, getReleaseRunSummary,
+  getTestRunsByRelease, createTestRun,
 } = require('../controllers/runController');
 
-// Run folders — read: all, write: run_manager only
+// Run folders (legacy) — read: all, write: run_manager only
 router.get('/folders', getRunFolderTree);
 router.post('/folders', authorize('run_manager'), createRunFolder);
 router.delete('/folders/:id', authorize('run_manager'), deleteRunFolder);
+
+// Release-based runs
+router.get('/releases-tree', getReleasesWithFeatures);
+router.get('/by-release', getRunsByRelease);
+router.post('/by-release', authorize('editor', 'run_manager'), addRunToRelease);
+router.get('/tcs-by-folder', getTCsByFolder);
+router.get('/release-summary', getReleaseRunSummary);
+router.get('/test-runs', getTestRunsByRelease);
+router.post('/test-runs', authorize('editor', 'run_manager'), createTestRun);
 
 // Report — all authenticated users
 router.get('/report', getReport);

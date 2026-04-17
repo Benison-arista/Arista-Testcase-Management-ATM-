@@ -4,6 +4,7 @@ import UserPrompt from './components/layout/UserPrompt';
 import TopBar from './components/layout/TopBar';
 import TCSection from './components/layout/TCSection';
 import RunsSection from './components/layout/RunsSection';
+import ReleasesSection from './components/releases/ReleasesSection';
 
 export default function App() {
   const { user } = useAppStore();
@@ -22,6 +23,14 @@ export default function App() {
           <Route path="/arista/folder/:folderId" element={<TCSection section="arista" />} />
           <Route path="/arista/folder/:folderId/tc/:tcId" element={<TCSection section="arista" />} />
           <Route path="/runs" element={<RunsSection />} />
+          <Route path="/runs/release/:releaseId" element={<RunsSection />} />
+          <Route path="/runs/release/:releaseId/tr/:runId" element={<RunsSection />} />
+          <Route path="/runs/release/:releaseId/tr/:runId/item/:itemId" element={<RunsSection />} />
+          <Route path="/runs/release/:releaseId/feature/:featureId" element={<RunsSection />} />
+          <Route path="/runs/release/:releaseId/feature/:featureId/item/:itemId" element={<RunsSection />} />
+          <Route path="/releases" element={<ReleasesSection />} />
+          <Route path="/releases/:releaseId" element={<ReleasesSection />} />
+          <Route path="/releases/:releaseId/feature/:featureId" element={<ReleasesSection />} />
           <Route path="*" element={<Navigate to="/velocloud" replace />} />
         </Routes>
       </div>
