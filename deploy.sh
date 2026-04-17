@@ -66,7 +66,7 @@ log "Configuring PostgreSQL..."
 $SUDO systemctl enable postgresql
 $SUDO systemctl start postgresql
 
-$SUDO -u postgres psql -v ON_ERROR_STOP=0 <<SQL
+su -c "psql -v ON_ERROR_STOP=0" postgres <<SQL
 DO \$\$
 BEGIN
   IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '${PG_USER}') THEN
