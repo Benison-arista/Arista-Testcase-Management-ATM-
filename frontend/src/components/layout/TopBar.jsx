@@ -53,8 +53,8 @@ export default function TopBar() {
       className="flex items-center gap-4 px-5 h-14 shrink-0 shadow-lg"
     >
       {/* Brand logo */}
-      <a href="/" className="shrink-0 flex items-center" title="ATM - Arista Testcase Management">
-        <img src={atmLogo} alt="ATM" className="h-10 drop-shadow-sm" />
+      <a href="/" className="shrink-0 flex items-center rounded-md overflow-hidden" title="ATM - Arista Testcase Management" style={{ background: '#fff', padding: '2px 6px' }}>
+        <img src={atmLogo} alt="ATM" className="h-9" />
       </a>
 
       {/* Tabs */}

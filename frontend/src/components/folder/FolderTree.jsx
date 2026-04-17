@@ -3,6 +3,7 @@ import { useDroppable, useDraggable } from '@dnd-kit/core';
 import { ChevronRight, ChevronDown, Folder, FolderOpen, Plus, Trash2, GripVertical } from 'lucide-react';
 import useFolderStore from '../../stores/useFolderStore';
 import useTCStore from '../../stores/useTCStore';
+import useSearchStore from '../../stores/useSearchStore';
 import useAppStore from '../../stores/useAppStore';
 
 function FolderNode({ node, section, depth = 0 }) {
@@ -29,6 +30,14 @@ function FolderNode({ node, section, depth = 0 }) {
   });
 
   const handleSelect = () => {
+    // Clear any active search and reset the search input
+    const { mode, clearSearch } = useSearchStore.getState();
+    if (mode !== 'idle') {
+      clearSearch();
+      // Clear the search input in the TopBar
+      const searchInput = document.querySelector('header input[placeholder*="Search"]');
+      if (searchInput) searchInput.value = '';
+    }
     selectFolder(node.id);
     fetchList({ folder_id: node.id, section });
     setOpen(true);

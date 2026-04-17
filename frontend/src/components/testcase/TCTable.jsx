@@ -99,7 +99,10 @@ function ColResizeHandle({ colKey, onResize }) {
       className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize group z-10"
       title="Drag to resize"
     >
-      <div className="absolute right-0 top-0 bottom-0 w-0.5 bg-transparent group-hover:bg-arista-400 transition-colors" />
+      <div className="absolute right-0 top-0 bottom-0 w-px transition-colors" style={{ background: '#b0c4de' }}
+        onMouseEnter={e => { e.currentTarget.style.background = '#3d8bfd'; e.currentTarget.style.width = '3px'; }}
+        onMouseLeave={e => { e.currentTarget.style.background = '#b0c4de'; e.currentTarget.style.width = '1px'; }}
+      />
     </div>
   );
 }
@@ -491,17 +494,16 @@ export default function TCTable({ section }) {
               <div className="relative" ref={filterRef}>
                 <button
                   onClick={() => { setFilterOpen(v => !v); setPickerOpen(false); }}
-                  style={activeFilterCount > 0 ? { color: '#0e6856', borderColor: '#6ee7b7', background: '#ecfdf5' } : {}}
-                  className={`flex items-center gap-1 text-xs border rounded px-2 py-1 ${
-                    activeFilterCount > 0
-                      ? 'font-semibold'
-                      : 'text-gray-500 hover:text-gray-700 border-gray-200 bg-white hover:bg-gray-100'
-                  }`}
+                  style={activeFilterCount > 0
+                    ? { color: '#fff', borderColor: '#0e6856', background: '#0e6856' }
+                    : { color: '#0e6856', borderColor: '#6ee7b7', background: '#ecfdf5' }
+                  }
+                  className="flex items-center gap-1 text-xs font-semibold border rounded px-2 py-1 hover:opacity-85 transition-opacity"
                   title="Filter test cases"
                 >
                   <Filter size={12} /> Filter
                   {activeFilterCount > 0 && (
-                    <span style={{ background: '#0e6856' }} className="text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center ml-0.5">
+                    <span className="text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center ml-0.5" style={{ background: '#fff', color: '#0e6856' }}>
                       {activeFilterCount}
                     </span>
                   )}
@@ -574,7 +576,8 @@ export default function TCTable({ section }) {
 
               <button
                 onClick={startEditColumns}
-                className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 border border-gray-200 bg-white rounded px-2 py-1 hover:bg-gray-100"
+                style={{ color: '#1a56b0', borderColor: '#a1bde9', background: '#e8f0fe' }}
+                className="flex items-center gap-1 text-xs font-semibold border rounded px-2 py-1 hover:opacity-85 transition-opacity"
                 title="Rearrange and resize columns"
               >
                 <Pencil size={12} /> Edit Columns
@@ -582,7 +585,8 @@ export default function TCTable({ section }) {
               <div className="relative" ref={pickerRef}>
                 <button
                   onClick={() => setPickerOpen(v => !v)}
-                  className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 border border-gray-200 bg-white rounded px-2 py-1 hover:bg-gray-100"
+                  style={{ color: '#6d28d9', borderColor: '#c4b5fd', background: '#f5f3ff' }}
+                  className="flex items-center gap-1 text-xs font-semibold border rounded px-2 py-1 hover:opacity-85 transition-opacity"
                 >
                   <SlidersHorizontal size={12} /> Columns
                 </button>
@@ -618,7 +622,7 @@ export default function TCTable({ section }) {
       {/* Table */}
       <div className="flex-1 overflow-auto">
         <table className="text-sm border-collapse" style={{ tableLayout: 'fixed', minWidth: '100%' }}>
-          <thead className="sticky top-0 bg-white z-10 shadow-[0_1px_0_0_#e5e7eb]">
+          <thead className="sticky top-0 z-10" style={{ background: '#e8f0fe', boxShadow: '0 1px 0 0 #d0def4' }}>
             <tr>
               {canEdit && !editingColumns && <th className="w-6" />}
               {columns.map((col, idx) => {

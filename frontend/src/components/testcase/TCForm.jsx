@@ -5,6 +5,9 @@ import useFolderStore from '../../stores/useFolderStore';
 import { getSchema } from '../../schemas';
 import { DynamicFieldInput } from './DynamicField';
 
+// Same grouping as TCDetail view
+const FULL_WIDTH_FIELDS = ['description', 'precondition', 'test_steps', 'expected_result', 'comments'];
+
 export default function TCForm({ section, initial = null, onClose }) {
   const schema = getSchema(section);
   const { createTC, updateTC } = useTCStore();
@@ -34,31 +37,49 @@ export default function TCForm({ section, initial = null, onClose }) {
     }
   };
 
+  const gridFields = schema.filter(f => !FULL_WIDTH_FIELDS.includes(f.key));
+  const fullWidthFields = schema.filter(f => FULL_WIDTH_FIELDS.includes(f.key));
+
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-40" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-40 p-6" onClick={onClose}>
       <form
         onSubmit={handleSubmit}
         onClick={e => e.stopPropagation()}
-        className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col"
+        className="bg-white rounded-2xl shadow-2xl flex flex-col w-full h-full max-w-[90vw] max-h-[90vh]"
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b">
-          <h3 className="font-semibold text-gray-800">
+        {/* Header — matching history panel style */}
+        <div className="flex items-center justify-between px-6 py-4 shrink-0" style={{ borderBottom: '2px solid #d0def4' }}>
+          <h3 style={{ color: '#0e2e5b' }} className="font-bold text-base">
             {initial ? 'Edit Test Case' : 'New Test Case'}
           </h3>
           <button type="button" onClick={onClose}><X size={18} className="text-gray-400 hover:text-gray-600" /></button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-5 py-4 grid grid-cols-2 gap-4">
-          {schema.map(field => (
-            <div key={field.key} className={field.type === 'textarea' ? 'col-span-2' : ''}>
+        {/* Form body */}
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+          {/* Grid fields — 3 columns for short fields */}
+          {gridFields.length > 0 && (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {gridFields.map(field => (
+                <div key={field.key}>
+                  <DynamicFieldInput field={field} value={formData[field.key]} onChange={handleChange} />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Full-width textarea fields */}
+          {fullWidthFields.map(field => (
+            <div key={field.key} className="pt-3" style={{ borderTop: '1px solid #d0def4' }}>
               <DynamicFieldInput field={field} value={formData[field.key]} onChange={handleChange} />
             </div>
           ))}
         </div>
 
-        {error && <p className="px-5 py-2 text-sm text-red-600">{error}</p>}
+        {error && <p className="px-6 py-2 text-sm text-red-600">{error}</p>}
 
-        <div className="px-5 py-4 border-t flex justify-end gap-3">
+        {/* Footer */}
+        <div className="px-6 py-4 flex justify-end gap-3 shrink-0" style={{ borderTop: '2px solid #d0def4' }}>
           <button
             type="button"
             onClick={onClose}
@@ -72,7 +93,7 @@ export default function TCForm({ section, initial = null, onClose }) {
             style={{ background: saving ? '#9ca3af' : '#1a56b0' }}
             className="px-4 py-2 text-sm text-white rounded-lg hover:opacity-90 disabled:opacity-50 transition-all font-semibold"
           >
-            {saving ? 'Saving…' : (initial ? 'Save Changes' : 'Create')}
+            {saving ? 'Saving...' : (initial ? 'Save Changes' : 'Create')}
           </button>
         </div>
       </form>

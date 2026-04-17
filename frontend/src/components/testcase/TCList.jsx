@@ -1,4 +1,4 @@
-import { FileText, Loader, GripVertical, Folder, ChevronRight } from 'lucide-react';
+import { FileText, Loader, GripVertical, Folder, ChevronRight, FolderOpen } from 'lucide-react';
 import { useDraggable } from '@dnd-kit/core';
 import useTCStore from '../../stores/useTCStore';
 import useSearchStore from '../../stores/useSearchStore';
@@ -15,8 +15,14 @@ function badge(priority) {
 function SubFolderItem({ folder, section }) {
   const { selectFolder } = useFolderStore();
   const { fetchList } = useTCStore();
+  const { mode, clearSearch } = useSearchStore();
 
   const handleClick = () => {
+    if (mode !== 'idle') {
+      clearSearch();
+      const searchInput = document.querySelector('header input[placeholder*="Search"]');
+      if (searchInput) searchInput.value = '';
+    }
     selectFolder(folder.id);
     fetchList({ folder_id: folder.id, section });
   };
@@ -33,8 +39,11 @@ function SubFolderItem({ folder, section }) {
   );
 }
 
-function DraggableTCItem({ tc, idKey, isActive, onSelect }) {
+function DraggableTCItem({ tc, idKey, isActive, onSelect, isSearchResult, section }) {
   const canEdit = useAppStore(s => s.isEditor());
+  const { selectFolder } = useFolderStore();
+  const { fetchList } = useTCStore();
+  const { clearSearch } = useSearchStore();
   const id = tc.data[idKey];
   const title = tc.data.title || tc.data.description || id;
   const priority = tc.data.priority;
@@ -44,6 +53,16 @@ function DraggableTCItem({ tc, idKey, isActive, onSelect }) {
     data: { type: 'tc', id: tc.id, title },
     disabled: !canEdit,
   });
+
+  const handleGoToFolder = (e) => {
+    e.stopPropagation();
+    if (!tc.folder_id) return;
+    clearSearch();
+    const searchInput = document.querySelector('header input[placeholder*="Search"]');
+    if (searchInput) searchInput.value = '';
+    selectFolder(tc.folder_id);
+    fetchList({ folder_id: tc.folder_id, section });
+  };
 
   return (
     <div
@@ -64,11 +83,23 @@ function DraggableTCItem({ tc, idKey, isActive, onSelect }) {
           <p className="text-sm font-medium text-gray-800 truncate">{title}</p>
           {id && <p className="text-xs text-gray-400 mt-0.5">{id}</p>}
         </div>
-        {priority && (
-          <span className={`text-xs px-1.5 py-0.5 rounded font-medium shrink-0 ${badge(priority)}`}>
-            {priority}
-          </span>
-        )}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {priority && (
+            <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${badge(priority)}`}>
+              {priority}
+            </span>
+          )}
+          {isSearchResult && tc.folder_id && (
+            <button
+              onClick={handleGoToFolder}
+              title="Open parent folder"
+              style={{ color: '#1a56b0' }}
+              className="p-0.5 rounded hover:bg-blue-100 transition-colors"
+            >
+              <FolderOpen size={14} />
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -116,6 +147,8 @@ export default function TCList({ section }) {
             idKey={idKey}
             isActive={selectedTC?.id === tc.id}
             onSelect={selectTC}
+            isSearchResult={mode !== 'idle'}
+            section={section}
           />
         ))}
       </div>
