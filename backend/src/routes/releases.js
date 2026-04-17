@@ -1,7 +1,7 @@
 const router = require('express').Router();
 const authorize = require('../middleware/authorize');
 const {
-  getReleaseTree, createRelease, deleteRelease,
+  getReleaseTree, createRelease, updateRelease, deleteRelease,
   getFeatures, getFeature, createFeature, updateFeature, deleteFeature,
   getReleaseSummary, getReleasesOverview,
 } = require('../controllers/releaseController');
@@ -10,6 +10,7 @@ const {
 router.get('/tree', getReleaseTree);
 router.get('/overview', getReleasesOverview);
 router.post('/', authorize('run_manager'), createRelease);
+router.put('/:id', authorize('run_manager'), updateRelease);
 router.delete('/:id', authorize('run_manager'), deleteRelease);
 
 // Features within a release

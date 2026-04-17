@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronRight, ChevronDown, Package, Plus, Trash2 } from 'lucide-react';
+import { ChevronRight, ChevronDown, Package, Plus, Trash2, Edit2 } from 'lucide-react';
 import useReleaseStore from '../../stores/useReleaseStore';
 import useAppStore from '../../stores/useAppStore';
 
@@ -11,12 +11,18 @@ const STATUS_DOT = {
   archived: '#6b7280',
 };
 
+const STATUSES = ['planning', 'active', 'released', 'archived'];
+const STATUS_LABEL = { planning: 'Planning', active: 'Active', released: 'Released', archived: 'Archived' };
+
 function ReleaseNode({ node, depth = 0 }) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState('');
-  const { selectedReleaseId, selectRelease, createRelease, deleteRelease, createFeature } = useReleaseStore();
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState(node.name);
+  const [editStatus, setEditStatus] = useState(node.status || 'planning');
+  const { selectedReleaseId, selectRelease, deleteRelease, createFeature, updateRelease } = useReleaseStore();
   const canManage = useAppStore(s => s.isRunManager());
 
   const isSelected = selectedReleaseId === node.id;
@@ -50,6 +56,70 @@ function ReleaseNode({ node, depth = 0 }) {
     navigate('/releases');
   };
 
+  const startEditing = (e) => {
+    e.stopPropagation();
+    setEditName(node.name);
+    setEditStatus(node.status || 'planning');
+    setEditing(true);
+  };
+
+  const handleEditSave = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const trimmed = editName.trim();
+    if (!trimmed) return;
+    try {
+      await updateRelease(node.id, { name: trimmed, status: editStatus });
+      setEditing(false);
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to update release');
+    }
+  };
+
+  const cancelEditing = (e) => {
+    if (e) e.stopPropagation();
+    setEditing(false);
+    setEditName(node.name);
+    setEditStatus(node.status || 'planning');
+  };
+
+  if (editing) {
+    return (
+      <div>
+        <form
+          onSubmit={handleEditSave}
+          className="flex flex-col gap-1.5 px-2 py-2 mx-1 rounded-lg"
+          style={{ background: '#e8f0fe', border: '1px solid #a1bde9' }}
+          onClick={e => e.stopPropagation()}
+        >
+          <input
+            autoFocus
+            className="border border-gray-300 rounded px-2 py-1 text-xs w-full"
+            placeholder="Release name"
+            value={editName}
+            onChange={e => setEditName(e.target.value)}
+          />
+          <select
+            className="border border-gray-300 rounded px-2 py-1 text-xs w-full"
+            value={editStatus}
+            onChange={e => setEditStatus(e.target.value)}
+          >
+            {STATUSES.map(s => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
+          </select>
+          <div className="flex items-center gap-1.5">
+            <button type="submit" className="text-xs font-semibold px-2 py-0.5 rounded" style={{ background: '#1a56b0', color: 'white' }}>Save</button>
+            <button type="button" onClick={cancelEditing} className="text-xs text-gray-500 hover:text-gray-700">Cancel</button>
+          </div>
+        </form>
+        {open && (
+          <div style={{ paddingLeft: 16 }}>
+            {node.children?.map(child => <ReleaseNode key={child.id} node={child} depth={depth + 1} />)}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div>
       <div
@@ -71,6 +141,7 @@ function ReleaseNode({ node, depth = 0 }) {
 
         {canManage && (
           <span className="hidden group-hover:flex items-center gap-1">
+            <button onClick={startEditing}><Edit2 size={13} className="text-gray-400 hover:text-blue-500" /></button>
             <button onClick={e => { e.stopPropagation(); setAdding(a => !a); }}><Plus size={13} className="text-gray-400 hover:text-green-600" /></button>
             <button onClick={handleDelete}><Trash2 size={13} className="text-gray-400 hover:text-red-500" /></button>
           </span>
@@ -99,7 +170,6 @@ function ReleaseNode({ node, depth = 0 }) {
 }
 
 export default function ReleaseTree() {
-  const navigate = useNavigate();
   const { tree, fetchTree, createRelease } = useReleaseStore();
   const canManage = useAppStore(s => s.isRunManager());
   const [adding, setAdding] = useState(false);

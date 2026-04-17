@@ -51,6 +51,11 @@ const useReleaseStore = create((set, get) => ({
     await get().fetchTree();
   },
 
+  updateRelease: async (id, body) => {
+    await api.updateRelease(id, body);
+    await get().fetchTree();
+  },
+
   deleteRelease: async (id) => {
     await api.deleteRelease(id);
     set({ selectedReleaseId: null, features: [], selectedFeature: null, summary: null });

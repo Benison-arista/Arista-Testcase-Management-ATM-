@@ -45,6 +45,21 @@ async function createRelease(req, res, next) {
   } catch (err) { next(err); }
 }
 
+async function updateRelease(req, res, next) {
+  const { id } = req.params;
+  const { name, status, target_date, description } = req.body;
+  try {
+    const { rows } = await pool.query(
+      `UPDATE releases SET name = COALESCE($1, name), status = COALESCE($2, status),
+       target_date = $3, description = $4
+       WHERE id = $5 RETURNING *`,
+      [name, status, target_date !== undefined ? target_date : null, description !== undefined ? description : null, id]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Not found' });
+    res.json(rows[0]);
+  } catch (err) { next(err); }
+}
+
 async function deleteRelease(req, res, next) {
   try {
     await pool.query('DELETE FROM releases WHERE id = $1', [req.params.id]);
@@ -198,4 +213,4 @@ async function getReleasesOverview(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { getReleaseTree, createRelease, deleteRelease, getFeatures, getFeature, createFeature, updateFeature, deleteFeature, getReleaseSummary, getReleasesOverview };
+module.exports = { getReleaseTree, createRelease, updateRelease, deleteRelease, getFeatures, getFeature, createFeature, updateFeature, deleteFeature, getReleaseSummary, getReleasesOverview };

@@ -2,6 +2,7 @@ import client from './client';
 
 export const getReleaseTree    = ()              => client.get('/releases/tree').then(r => r.data);
 export const createRelease     = (body)          => client.post('/releases', body).then(r => r.data);
+export const updateRelease     = (id, body)      => client.put(`/releases/${id}`, body).then(r => r.data);
 export const deleteRelease     = (id)            => client.delete(`/releases/${id}`);
 
 export const getFeatures       = (releaseId, params = {}) => client.get(`/releases/${releaseId}/features`, { params }).then(r => r.data);
