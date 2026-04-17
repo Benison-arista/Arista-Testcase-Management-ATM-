@@ -35,6 +35,11 @@ const useFolderStore = create((set, get) => ({
     await get().fetchTree(section);
   },
 
+  renameFolder: async (id, name, section) => {
+    await api.renameFolder(id, { name });
+    await get().fetchTree(section);
+  },
+
   deleteFolder: async (id, section) => {
     await api.deleteFolder(id);
     await get().fetchTree(section);

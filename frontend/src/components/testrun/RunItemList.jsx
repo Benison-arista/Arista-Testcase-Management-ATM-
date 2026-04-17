@@ -4,6 +4,7 @@ import { CheckCircle, XCircle, Clock, AlertCircle, Trash2, Plus } from 'lucide-r
 import useRunStore from '../../stores/useRunStore';
 import useAppStore from '../../stores/useAppStore';
 import AddTCModal from './AddTCModal';
+import TestRunsHome from './TestRunsHome';
 
 // --- Resizable column handle ---
 function ColHandle({ colKey, onResize }) {
@@ -628,11 +629,7 @@ export default function RunItemList() {
   const { selectedReleaseId, selectedRunFolderId, selectedFeatureId, releaseTree } = useRunStore();
 
   if (!selectedReleaseId) {
-    return (
-      <div className="flex items-center justify-center h-full text-gray-400 text-sm">
-        Select a release to view test runs.
-      </div>
-    );
+    return <TestRunsHome />;
   }
 
   // If a specific test run or feature run is selected, show the detail view

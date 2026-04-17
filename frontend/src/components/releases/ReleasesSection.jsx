@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import ReleaseTree from './ReleaseTree';
 import ReleaseDashboard from './ReleaseDashboard';
-import FeatureList from './FeatureList';
+import ReleasesHome from './ReleasesHome';
 import FeatureDetail from './FeatureDetail';
 import useReleaseStore from '../../stores/useReleaseStore';
 
@@ -40,7 +40,7 @@ export default function ReleasesSection() {
   } else if (selectedReleaseId && !urlFeatureId) {
     mainContent = <ReleaseDashboard />;
   } else {
-    mainContent = <FeatureList />;
+    mainContent = <ReleasesHome />;
   }
 
   return (

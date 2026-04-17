@@ -42,13 +42,17 @@ export default function AddTCModal({ onClose }) {
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [loading, setLoading] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [folderSection, setFolderSection] = useState('velocloud');
   const [folderTree, setFolderTree] = useState([]);
   const [selectedFolders, setSelectedFolders] = useState(new Set());
-  const [folderTCs, setFolderTCs] = useState([]); // TCs loaded from selected folders (shown in right panel)
+  const [folderTCs, setFolderTCs] = useState([]);
   const [loadingFolders, setLoadingFolders] = useState(false);
   const searchTimeout = useRef(null);
 
-  useEffect(() => { getFolderTree('velocloud').then(flat => setFolderTree(buildTree(flat))); }, []);
+  // Load folder tree when section changes
+  useEffect(() => {
+    getFolderTree(folderSection).then(flat => setFolderTree(buildTree(flat)));
+  }, [folderSection]);
 
   const handleSearch = (q) => {
     setQuery(q);
@@ -57,7 +61,8 @@ export default function AddTCModal({ onClose }) {
     searchTimeout.current = setTimeout(async () => {
       setLoading(true);
       try {
-        const res = await searchTestcases({ q, limit: 100 });
+        // Search across all sections (no section filter)
+        const res = await searchTestcases({ q, limit: 200 });
         setSearchResults(res.data || res);
       } catch { setSearchResults([]); }
       setLoading(false);
@@ -147,10 +152,23 @@ export default function AddTCModal({ onClose }) {
                 </div>
               </div>
             ) : (
-              <div className="flex-1 overflow-y-auto py-1">
-                <p className="px-3 py-1.5 text-xs text-gray-400">Select folders to load TCs:</p>
-                {folderTree.map(node => <FolderPickerNode key={node.id} node={node} selectedFolders={selectedFolders} onToggle={toggleFolder} />)}
-                {loadingFolders && <p className="text-xs text-gray-400 text-center py-2">Loading TCs...</p>}
+              <div className="flex flex-col h-full">
+                {/* Section tabs */}
+                <div className="flex border-b shrink-0" style={{ borderColor: '#d0def4' }}>
+                  <button
+                    onClick={() => setFolderSection('velocloud')}
+                    className={`flex-1 px-3 py-1.5 text-xs font-medium border-b-2 transition-colors ${folderSection === 'velocloud' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                  >VeloCloud</button>
+                  <button
+                    onClick={() => setFolderSection('arista')}
+                    className={`flex-1 px-3 py-1.5 text-xs font-medium border-b-2 transition-colors ${folderSection === 'arista' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                  >Arista</button>
+                </div>
+                <div className="flex-1 overflow-y-auto py-1">
+                  {folderTree.map(node => <FolderPickerNode key={node.id} node={node} selectedFolders={selectedFolders} onToggle={toggleFolder} />)}
+                  {folderTree.length === 0 && <p className="text-xs text-gray-400 text-center py-4">No folders in {folderSection}.</p>}
+                  {loadingFolders && <p className="text-xs text-gray-400 text-center py-2">Loading TCs...</p>}
+                </div>
               </div>
             )}
           </div>

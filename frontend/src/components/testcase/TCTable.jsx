@@ -20,7 +20,7 @@ const FILTER_FIELDS = [
 
 const DEFAULT_COLUMNS = {
   velocloud: ['qtest_id', 'title', 'testrail_id', 'priority'],
-  arista: ['arista_id', 'description', 'status', 'priority'],
+  arista: ['arista_id', 'priority', 'description', 'owner'],
 };
 
 const PRIORITY_BADGE = {

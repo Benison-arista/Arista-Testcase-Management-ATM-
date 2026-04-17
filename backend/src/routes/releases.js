@@ -3,11 +3,12 @@ const authorize = require('../middleware/authorize');
 const {
   getReleaseTree, createRelease, deleteRelease,
   getFeatures, getFeature, createFeature, updateFeature, deleteFeature,
-  getReleaseSummary,
+  getReleaseSummary, getReleasesOverview,
 } = require('../controllers/releaseController');
 
-// Release tree
+// Release tree & overview
 router.get('/tree', getReleaseTree);
+router.get('/overview', getReleasesOverview);
 router.post('/', authorize('run_manager'), createRelease);
 router.delete('/:id', authorize('run_manager'), deleteRelease);
 

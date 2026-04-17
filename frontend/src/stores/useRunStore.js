@@ -134,7 +134,11 @@ const useRunStore = create((set, get) => ({
         feature_id: selectedFeatureId || null,
         testcase_ids: testcaseIds,
       });
-      await get().selectRelease(selectedReleaseId, selectedFeatureId);
+      if (selectedFeatureId) {
+        await get().selectFeatureRun(selectedReleaseId, selectedFeatureId);
+      } else {
+        await get().selectRelease(selectedReleaseId);
+      }
     }
   },
 

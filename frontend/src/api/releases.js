@@ -11,3 +11,5 @@ export const updateFeature     = (releaseId, id, body) => client.put(`/releases/
 export const deleteFeature     = (releaseId, id) => client.delete(`/releases/${releaseId}/features/${id}`);
 
 export const getReleaseSummary = (releaseId)     => client.get(`/releases/${releaseId}/summary`).then(r => r.data);
+
+export const getReleasesOverview = ()            => client.get('/releases/overview').then(r => r.data);

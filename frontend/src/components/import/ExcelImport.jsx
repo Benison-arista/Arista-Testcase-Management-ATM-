@@ -153,9 +153,9 @@ export default function ExcelImport({ section, onClose }) {
 
         <div className="px-5 py-4">
           {step === 'upload' && !reading && (
-            <label className="flex flex-col items-center gap-3 border-2 border-dashed border-gray-300 rounded-xl p-8 cursor-pointer hover:border-arista-400 transition-colors">
-              <Upload size={32} className="text-gray-400" />
-              <span className="text-sm text-gray-500">Click to upload or drag an .xlsx / .xls / .csv file</span>
+            <label className="flex flex-col items-center gap-3 border-2 border-dashed rounded-xl p-8 cursor-pointer transition-colors" style={{ borderColor: '#3d8bfd', background: '#e8f0fe' }} onMouseEnter={e => { e.currentTarget.style.background = '#dbeafe'; }} onMouseLeave={e => { e.currentTarget.style.background = '#e8f0fe'; }}>
+              <Upload size={32} style={{ color: '#1a56b0' }} />
+              <span className="text-sm font-medium" style={{ color: '#1a56b0' }}>Click to upload or drag an .xlsx / .xls / .csv file</span>
               <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleFile} />
             </label>
           )}
@@ -277,7 +277,8 @@ export default function ExcelImport({ section, onClose }) {
           {step === 'sheet' && (
             <button
               onClick={handleSheetConfirm}
-              className="px-4 py-2 text-sm bg-arista-500 text-white rounded-lg hover:bg-arista-600"
+              className="px-4 py-2 text-sm text-white rounded-lg hover:opacity-90"
+              style={{ background: '#1a56b0' }}
             >
               Use this sheet →
             </button>

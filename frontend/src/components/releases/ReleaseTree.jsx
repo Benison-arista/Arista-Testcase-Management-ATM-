@@ -16,7 +16,7 @@ function ReleaseNode({ node, depth = 0 }) {
   const [open, setOpen] = useState(false);
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState('');
-  const { selectedReleaseId, selectRelease, createRelease, deleteRelease } = useReleaseStore();
+  const { selectedReleaseId, selectRelease, createRelease, deleteRelease, createFeature } = useReleaseStore();
   const canManage = useAppStore(s => s.isRunManager());
 
   const isSelected = selectedReleaseId === node.id;
@@ -30,9 +30,17 @@ function ReleaseNode({ node, depth = 0 }) {
   const handleAdd = async (e) => {
     e.stopPropagation();
     e.preventDefault();
-    if (!newName.trim()) return;
-    await createRelease(newName.trim(), node.id);
-    setNewName(''); setAdding(false); setOpen(true);
+    const trimmed = newName.trim();
+    if (!trimmed) return;
+    setNewName('');
+    setAdding(false);
+    try {
+      await createFeature({ name: trimmed }, node.id);
+      await selectRelease(node.id);
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to create feature');
+    }
+    setOpen(true);
   };
 
   const handleDelete = async (e) => {
@@ -73,10 +81,15 @@ function ReleaseNode({ node, depth = 0 }) {
         <div style={{ paddingLeft: 16 }}>
           {node.children?.map(child => <ReleaseNode key={child.id} node={child} depth={depth + 1} />)}
           {canManage && adding && (
-            <form onSubmit={handleAdd} className="flex items-center gap-1 px-2 py-1" onClick={e => e.stopPropagation()}>
-              <input autoFocus className="flex-1 border border-gray-300 rounded px-2 py-0.5 text-xs" placeholder="Release name" value={newName} onChange={e => setNewName(e.target.value)} />
+            <form
+              onSubmit={handleAdd}
+              className="flex items-center gap-1 px-2 py-1"
+              onClick={e => e.stopPropagation()}
+              onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget)) { setAdding(false); setNewName(''); } }}
+            >
+              <input autoFocus className="flex-1 border border-gray-300 rounded px-2 py-0.5 text-xs" placeholder="Feature name" value={newName} onChange={e => setNewName(e.target.value)} />
               <button type="submit" className="text-xs font-medium" style={{ color: '#0e6856' }}>Add</button>
-              <button type="button" onClick={() => setAdding(false)} className="text-xs text-gray-400">&times;</button>
+              <button type="button" onClick={() => { setAdding(false); setNewName(''); }} className="text-xs text-gray-400">&times;</button>
             </form>
           )}
         </div>

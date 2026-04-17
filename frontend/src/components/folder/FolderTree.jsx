@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDroppable, useDraggable } from '@dnd-kit/core';
-import { ChevronRight, ChevronDown, Folder, FolderOpen, Plus, Trash2, GripVertical } from 'lucide-react';
+import { ChevronRight, ChevronDown, Folder, FolderOpen, Plus, Trash2, GripVertical, Pencil } from 'lucide-react';
 import useFolderStore from '../../stores/useFolderStore';
 import useTCStore from '../../stores/useTCStore';
 import useSearchStore from '../../stores/useSearchStore';
@@ -10,11 +10,14 @@ import useAppStore from '../../stores/useAppStore';
 function FolderNode({ node, section, depth = 0 }) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
-  const { selectedFolderId, selectFolder, deleteFolder, createFolder } = useFolderStore();
+  const { selectedFolderId, selectFolder, deleteFolder, createFolder, renameFolder } = useFolderStore();
   const { fetchList } = useTCStore();
   const canEdit = useAppStore(s => s.isEditor());
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState('');
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState(node.name);
+  const renamingRef = useRef(false);
 
   const isSelected = selectedFolderId === node.id;
 
@@ -51,6 +54,30 @@ function FolderNode({ node, section, depth = 0 }) {
     setNewName('');
     setAdding(false);
     setOpen(true);
+  };
+
+  const handleRename = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (renamingRef.current) return;
+    const trimmed = editName.trim();
+    if (!trimmed || trimmed === node.name) { setEditing(false); setEditName(node.name); return; }
+    renamingRef.current = true;
+    try {
+      await renameFolder(node.id, trimmed, section);
+    } catch (err) {
+      alert(err.response?.data?.error || 'Rename failed');
+      setEditName(node.name);
+    }
+    renamingRef.current = false;
+    setEditing(false);
+  };
+
+  const cancelRename = () => {
+    renamingRef.current = true;          // block the onBlur from triggering rename
+    setEditing(false);
+    setEditName(node.name);
+    setTimeout(() => { renamingRef.current = false; }, 0);
   };
 
   const handleDelete = async (e) => {
@@ -93,10 +120,26 @@ function FolderNode({ node, section, depth = 0 }) {
         {open ? <FolderOpen size={14} style={{ color: '#1a56b0' }} className="shrink-0" />
                : <Folder size={14} style={{ color: '#3d8bfd' }} className="shrink-0" />}
 
-        <span className="flex-1 text-sm truncate">{node.name}</span>
+        {editing ? (
+          <form onSubmit={handleRename} className="flex-1 flex items-center gap-1 min-w-0" onClick={e => e.stopPropagation()}>
+            <input
+              autoFocus
+              className="flex-1 border border-blue-400 rounded px-1.5 py-0 text-sm min-w-0"
+              value={editName}
+              onChange={e => setEditName(e.target.value)}
+              onBlur={handleRename}
+              onKeyDown={e => { if (e.key === 'Escape') cancelRename(); }}
+            />
+          </form>
+        ) : (
+          <span className="flex-1 text-sm truncate">{node.name}</span>
+        )}
 
-        {canEdit && (
+        {canEdit && !editing && (
           <span className="hidden group-hover:flex items-center gap-1">
+            <button onClick={(e) => { e.stopPropagation(); setEditName(node.name); setEditing(true); }} title="Rename folder">
+              <Pencil size={13} className="text-gray-400 hover:text-blue-500" />
+            </button>
             <button onClick={(e) => { e.stopPropagation(); setAdding(a => !a); }} title="Add subfolder">
               <Plus size={13} className="text-gray-400 hover:text-arista-500" />
             </button>

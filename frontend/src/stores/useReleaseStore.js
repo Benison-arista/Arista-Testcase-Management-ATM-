@@ -23,6 +23,8 @@ const useReleaseStore = create((set, get) => ({
   selectedFeature: null,
   summary: null,
   testRuns: [], // manual + feature test runs for the dashboard
+  overview: [],
+  overviewLoading: false,
   page: 1,
   limit: 50,
   total: 0,
@@ -31,6 +33,17 @@ const useReleaseStore = create((set, get) => ({
   fetchTree: async () => {
     const flat = await api.getReleaseTree();
     set({ tree: buildTree(flat) });
+  },
+
+  fetchOverview: async () => {
+    set({ overviewLoading: true });
+    try {
+      const data = await api.getReleasesOverview();
+      set({ overview: data, overviewLoading: false });
+    } catch (err) {
+      console.error('Failed to fetch releases overview:', err);
+      set({ overviewLoading: false });
+    }
   },
 
   createRelease: async (name, parentId, extra = {}) => {
@@ -78,13 +91,15 @@ const useReleaseStore = create((set, get) => ({
     });
   },
 
-  createFeature: async (body) => {
-    const { selectedReleaseId } = get();
-    const feature = await api.createFeature(selectedReleaseId, body);
-    set(s => ({ features: [feature, ...s.features], total: s.total + 1 }));
-    // Refresh summary
-    const summary = await api.getReleaseSummary(selectedReleaseId);
-    set({ summary });
+  createFeature: async (body, releaseId) => {
+    const rid = releaseId || get().selectedReleaseId;
+    const feature = await api.createFeature(rid, body);
+    // Only update local state if this is the currently selected release
+    if (rid === get().selectedReleaseId) {
+      set(s => ({ features: [feature, ...s.features], total: s.total + 1 }));
+      const summary = await api.getReleaseSummary(rid);
+      set({ summary });
+    }
     return feature;
   },
 

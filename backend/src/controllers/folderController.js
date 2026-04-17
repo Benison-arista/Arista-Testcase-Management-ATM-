@@ -79,6 +79,25 @@ async function moveFolder(req, res, next) {
   }
 }
 
+async function renameFolder(req, res, next) {
+  const { id } = req.params;
+  const { name } = req.body;
+  if (!name || !name.trim()) return res.status(400).json({ error: 'name is required' });
+  try {
+    const { rows } = await pool.query(
+      'UPDATE folders SET name = $1 WHERE id = $2 RETURNING *',
+      [name.trim(), id]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Folder not found' });
+    res.json(rows[0]);
+  } catch (err) {
+    if (err.code === '23505') {
+      return res.status(409).json({ error: 'A folder with this name already exists in the same parent' });
+    }
+    next(err);
+  }
+}
+
 async function deleteFolder(req, res, next) {
   const { id } = req.params;
   try {
@@ -87,4 +106,4 @@ async function deleteFolder(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { getTree, createFolder, moveFolder, deleteFolder };
+module.exports = { getTree, createFolder, moveFolder, renameFolder, deleteFolder };

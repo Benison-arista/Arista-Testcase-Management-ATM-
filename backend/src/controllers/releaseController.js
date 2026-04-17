@@ -159,4 +159,43 @@ async function getReleaseSummary(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { getReleaseTree, createRelease, deleteRelease, getFeatures, getFeature, createFeature, updateFeature, deleteFeature, getReleaseSummary };
+async function getReleasesOverview(req, res, next) {
+  try {
+    const { rows } = await pool.query(
+      `SELECT
+         r.id, r.name, r.parent_id, r.status, r.target_date, r.description,
+         r.created_by, r.created_at,
+         COALESCE(f.feature_count, 0)::int        AS feature_count,
+         COALESCE(f.features_completed, 0)::int    AS features_completed,
+         COALESCE(f.features_in_progress, 0)::int  AS features_in_progress,
+         COALESCE(f.features_deferred, 0)::int     AS features_deferred,
+         COALESCE(t.total_tcs, 0)::int             AS total_tcs,
+         COALESCE(t.pass_count, 0)::int            AS pass_count,
+         COALESCE(t.fail_count, 0)::int            AS fail_count,
+         COALESCE(t.blocked_count, 0)::int         AS blocked_count,
+         COALESCE(t.pending_count, 0)::int         AS pending_count
+       FROM releases r
+       LEFT JOIN (
+         SELECT release_id,
+           COUNT(*)::int AS feature_count,
+           COUNT(*) FILTER (WHERE status = 'completed')::int AS features_completed,
+           COUNT(*) FILTER (WHERE status IN ('in_progress','in_testing'))::int AS features_in_progress,
+           COUNT(*) FILTER (WHERE status = 'deferred')::int AS features_deferred
+         FROM features GROUP BY release_id
+       ) f ON f.release_id = r.id
+       LEFT JOIN (
+         SELECT release_id,
+           COUNT(*)::int AS total_tcs,
+           COUNT(*) FILTER (WHERE status = 'pass')::int    AS pass_count,
+           COUNT(*) FILTER (WHERE status = 'fail')::int    AS fail_count,
+           COUNT(*) FILTER (WHERE status = 'blocked')::int AS blocked_count,
+           COUNT(*) FILTER (WHERE status = 'pending')::int AS pending_count
+         FROM test_runs WHERE release_id IS NOT NULL GROUP BY release_id
+       ) t ON t.release_id = r.id
+       ORDER BY r.name`
+    );
+    res.json(rows);
+  } catch (err) { next(err); }
+}
+
+module.exports = { getReleaseTree, createRelease, deleteRelease, getFeatures, getFeature, createFeature, updateFeature, deleteFeature, getReleaseSummary, getReleasesOverview };
