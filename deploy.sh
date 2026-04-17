@@ -46,9 +46,9 @@ if ! command -v psql &>/dev/null; then
   $SUDO apt-get install -y postgresql postgresql-contrib
 fi
 
-if ! command -v node &>/dev/null || \
-   [[ $(node -e 'process.stdout.write(process.versions.node.split(".")[0])') -lt 18 ]]; then
-  log "Installing Node.js 20.x..."
+NODE_MAJOR=$(node -e 'process.stdout.write(process.versions.node.split(".")[0])' 2>/dev/null || echo 0)
+if [[ "$NODE_MAJOR" -lt 20 ]]; then
+  log "Installing Node.js 20.x (current: ${NODE_MAJOR})..."
   curl -fsSL https://deb.nodesource.com/setup_20.x | $SUDO bash -
   $SUDO apt-get install -y nodejs
 fi
