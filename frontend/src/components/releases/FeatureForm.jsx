@@ -88,7 +88,7 @@ export default function FeatureForm({ initial = null, onClose }) {
                 {field.type === 'select' ? (
                   <select className={base} value={form[field.key] || ''} onChange={e => set(field.key, e.target.value)} style={{ '--tw-ring-color': '#3d8bfd' }}>
                     <option value="">-- select --</option>
-                    {field.options.map(o => <option key={o} value={o}>{o.replace(/_/g, ' ')}</option>)}
+                    {field.options.map(o => <option key={o} value={o}>{o.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</option>)}
                   </select>
                 ) : (
                   <input

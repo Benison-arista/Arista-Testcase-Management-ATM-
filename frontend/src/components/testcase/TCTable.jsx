@@ -216,7 +216,7 @@ function DraggableRow({ tc, columns, colWidths, onSelect, editingColumns, sectio
 export default function TCTable({ section }) {
   const canEdit = useAppStore(s => s.isEditor());
   const { list, selectTC, page, totalPages, total, setPage, fetchList, updateTC } = useTCStore();
-  const { results, mode, total: searchTotal, page: searchPage, totalPages: searchTotalPages } = useSearchStore();
+  const { results, mode, searching, total: searchTotal, page: searchPage, totalPages: searchTotalPages } = useSearchStore();
   const { selectedFolderId } = useFolderStore();
   const schema = getSchema(section);
 
@@ -493,6 +493,15 @@ export default function TCTable({ section }) {
       <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-2">
         <FolderOpen size={40} strokeWidth={1} />
         <p className="text-sm">Select a folder to view test cases.</p>
+      </div>
+    );
+  }
+
+  if (searching) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-2">
+        <div className="w-8 h-8 border-3 border-gray-300 border-t-blue-500 rounded-full animate-spin" style={{ borderWidth: 3, borderTopColor: '#1a56b0' }} />
+        <p className="text-sm">Searching...</p>
       </div>
     );
   }

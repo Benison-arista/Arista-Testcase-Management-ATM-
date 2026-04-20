@@ -120,16 +120,16 @@ function DraggableTCItem({ tc, idKey, isActive, onSelect, isSearchResult, sectio
 
 export default function TCList({ section }) {
   const { list, selectedTC, selectTC, loading, page, totalPages, total, setPage, fetchList } = useTCStore();
-  const { results, mode } = useSearchStore();
+  const { results, mode, searching } = useSearchStore();
   const { selectedFolderId, getChildren } = useFolderStore();
   const idKey = getIdKey(section);
 
   const items = mode !== 'idle' ? results : list;
   const subFolders = mode === 'idle' && selectedFolderId ? getChildren(selectedFolderId) : [];
 
-  if (loading) return (
+  if (loading || searching) return (
     <div className="flex items-center justify-center h-40 text-gray-400">
-      <Loader size={20} className="animate-spin mr-2" /> Loading...
+      <Loader size={20} className="animate-spin mr-2" /> {searching ? 'Searching...' : 'Loading...'}
     </div>
   );
 
