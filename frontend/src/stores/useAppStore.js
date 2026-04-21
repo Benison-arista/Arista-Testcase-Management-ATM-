@@ -4,7 +4,7 @@ import * as authApi from '../api/auth';
 const useAppStore = create((set, get) => ({
   user: JSON.parse(localStorage.getItem('atm_user') || 'null'),
   token: localStorage.getItem('atm_token') || null,
-  activeTab: 'velocloud', // 'velocloud' | 'arista' | 'runs'
+  activeTab: 'sd-wan', // 'sd-wan' | 'arista' | 'runs'
 
   login: async (username, password) => {
     const { user, token } = await authApi.login({ username, password });

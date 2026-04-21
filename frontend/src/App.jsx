@@ -18,9 +18,9 @@ export default function App() {
       <div className="flex flex-1 overflow-hidden">
         <Routes>
           <Route path="/home" element={<HomeSection />} />
-          <Route path="/velocloud" element={<TCSection section="velocloud" />} />
-          <Route path="/velocloud/folder/:folderId" element={<TCSection section="velocloud" />} />
-          <Route path="/velocloud/folder/:folderId/tc/:tcId" element={<TCSection section="velocloud" />} />
+          <Route path="/sd-wan" element={<TCSection section="velocloud" />} />
+          <Route path="/sd-wan/folder/:folderId" element={<TCSection section="velocloud" />} />
+          <Route path="/sd-wan/folder/:folderId/tc/:tcId" element={<TCSection section="velocloud" />} />
           <Route path="/arista" element={<TCSection section="arista" />} />
           <Route path="/arista/folder/:folderId" element={<TCSection section="arista" />} />
           <Route path="/arista/folder/:folderId/tc/:tcId" element={<TCSection section="arista" />} />

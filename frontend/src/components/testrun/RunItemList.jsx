@@ -111,7 +111,7 @@ function StatusSelect({ value, onChange }) {
 
 // --- TC detail fields ---
 const GRID_KEYS = ['qtest_id', 'testrail_id', 'priority', 'state', 'module', 'section', 'pillar', 'template', 'milestone', 'automatable_call', 'automation_status', 'automated_by', 'blocked_by', 'hardware_platforms', 'jira_defect', 'arista_id', 'type', 'owner', 'status'];
-const GRID_LABELS = { qtest_id: 'qTest ID', testrail_id: 'TestRail ID', priority: 'Priority', state: 'State', module: 'Module', section: 'Section', pillar: 'Pillar', template: 'Template', milestone: 'Milestone', automatable_call: 'Automatable', automation_status: 'Automation Status', automated_by: 'Automated By', blocked_by: 'Blocked By', hardware_platforms: 'HW Platforms', jira_defect: 'Jira Defect', arista_id: 'Arista ID', type: 'Type', owner: 'Owner', status: 'Status' };
+const GRID_LABELS = { qtest_id: 'qTest ID', testrail_id: 'TestRail ID', priority: 'Priority', state: 'State', module: 'Module', section: 'Section', pillar: 'Pillar', template: 'Template', milestone: 'Milestone', automatable_call: 'Automatable', automation_status: 'Automation Status', automated_by: 'Automated By', blocked_by: 'Blocked By', hardware_platforms: 'HW Platforms', jira_defect: 'Jira Defect', arista_id: 'EOS ID', type: 'Type', owner: 'Owner', status: 'Status' };
 const FULL_WIDTH_KEYS = ['description', 'precondition', 'test_steps', 'expected_result'];
 const FULL_WIDTH_LABELS = { description: 'Description', precondition: 'Precondition', test_steps: 'Test Steps', expected_result: 'Expected Result' };
 

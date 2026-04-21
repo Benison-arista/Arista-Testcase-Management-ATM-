@@ -6,8 +6,8 @@ import useSearchStore from '../../stores/useSearchStore';
 import atmLogo from '../../assets/atm-logo.png';
 
 const TABS = [
-  { key: 'velocloud', label: 'VeloCloud TCs' },
-  { key: 'arista',    label: 'Arista TCs' },
+  { key: 'sd-wan', label: 'SD-WAN TCs' },
+  { key: 'arista',    label: 'EOS TCs' },
   { key: 'runs',      label: 'Test Runs' },
   { key: 'releases',  label: 'Releases' },
 ];
@@ -34,7 +34,7 @@ export default function TopBar() {
 
   // Derive active tab from URL path
   const path = location.pathname;
-  const activeTab = path === '/home' ? 'home' : path.startsWith('/arista') ? 'arista' : path.startsWith('/runs') ? 'runs' : path.startsWith('/releases') ? 'releases' : 'velocloud';
+  const activeTab = path === '/home' ? 'home' : path.startsWith('/arista') ? 'arista' : path.startsWith('/runs') ? 'runs' : path.startsWith('/releases') ? 'releases' : 'sd-wan';
 
   const handleSearch = useCallback((e) => {
     const q = e.target.value;
@@ -42,7 +42,7 @@ export default function TopBar() {
     if (!q) { clearSearch(); return; }
     if (activeTab === 'runs') return;
     searchTimeout.current = setTimeout(() => {
-      search(q, activeTab);
+      search(q, activeTab === 'sd-wan' ? 'velocloud' : activeTab);
     }, 300);
     useSearchStore.setState({ query: q });
   }, [activeTab, search, clearSearch]);

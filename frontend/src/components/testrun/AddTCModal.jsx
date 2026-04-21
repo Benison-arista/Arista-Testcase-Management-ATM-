@@ -42,7 +42,7 @@ export default function AddTCModal({ onClose }) {
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [loading, setLoading] = useState(false);
   const [adding, setAdding] = useState(false);
-  const [folderSection, setFolderSection] = useState('velocloud');
+  const [folderSection, setFolderSection] = useState('sd-wan');
   const [folderTree, setFolderTree] = useState([]);
   const [selectedFolders, setSelectedFolders] = useState(new Set());
   const [folderTCs, setFolderTCs] = useState([]);
@@ -51,7 +51,7 @@ export default function AddTCModal({ onClose }) {
 
   // Load folder tree when section changes
   useEffect(() => {
-    getFolderTree(folderSection).then(flat => setFolderTree(buildTree(flat)));
+    getFolderTree(folderSection === 'sd-wan' ? 'velocloud' : folderSection).then(flat => setFolderTree(buildTree(flat)));
   }, [folderSection]);
 
   const handleSearch = (q) => {
@@ -156,13 +156,13 @@ export default function AddTCModal({ onClose }) {
                 {/* Section tabs */}
                 <div className="flex border-b shrink-0" style={{ borderColor: '#d0def4' }}>
                   <button
-                    onClick={() => setFolderSection('velocloud')}
-                    className={`flex-1 px-3 py-1.5 text-xs font-medium border-b-2 transition-colors ${folderSection === 'velocloud' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-                  >VeloCloud</button>
+                    onClick={() => setFolderSection('sd-wan')}
+                    className={`flex-1 px-3 py-1.5 text-xs font-medium border-b-2 transition-colors ${folderSection === 'sd-wan' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                  >SD-WAN</button>
                   <button
                     onClick={() => setFolderSection('arista')}
                     className={`flex-1 px-3 py-1.5 text-xs font-medium border-b-2 transition-colors ${folderSection === 'arista' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-                  >Arista</button>
+                  >EOS</button>
                 </div>
                 <div className="flex-1 overflow-y-auto py-1">
                   {folderTree.map(node => <FolderPickerNode key={node.id} node={node} selectedFolders={selectedFolders} onToggle={toggleFolder} />)}

@@ -173,13 +173,13 @@ export default function HomeSection() {
           {/* TC section cards — stacked vertically, fill remaining width */}
           <div className="flex-1 flex flex-col gap-4">
             <TCSectionCard
-              label="VeloCloud"
+              label="SD-WAN"
               accent="#1a56b0"
               counts={tcCounts?.velocloud}
-              onClick={() => navigate('/velocloud')}
+              onClick={() => navigate('/sd-wan')}
             />
             <TCSectionCard
-              label="Arista"
+              label="EOS"
               accent="#00b4d8"
               counts={tcCounts?.arista}
               onClick={() => navigate('/arista')}
